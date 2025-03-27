@@ -24,6 +24,10 @@ jobs:
 
       - name: Initialize Terraform
         run: |
+          export SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} \
+          export SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }} \
+          export AWS_ACCESS_KEY_ID=$SCW_ACCESS_KEY \
+          export AWS_SECRET_ACCESS_KEY=$SCW_SECRET_KEY
           cd terraform
           terraform init
 
