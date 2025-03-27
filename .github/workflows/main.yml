@@ -18,8 +18,10 @@ jobs:
           export AWS_ACCESS_KEY_ID=$SCW_ACCESS_KEY
           export AWS_SECRET_ACCESS_KEY=$SCW_SECRET_KEY` >> "$GITHUB_OUTPUT"
       
-      - run: cd terraform
-      
+      - run: |
+          pwd
+          ls -alh
+
       - run: terraform init
 
       - run: terraform plan -var project_name=test
