@@ -23,10 +23,9 @@ jobs:
       - run: env
 
       - name: Initialize Terraform
-        run: |
-          cd terraform
-          terraform init
+        run: terraform init
+        working-directory: terraform
 
       - name: Run terraform plan
         run: terraform plan -var project_name=test
-        
+        working-directory: terraform
