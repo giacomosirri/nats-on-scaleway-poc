@@ -5,10 +5,12 @@ terraform {
   backend "s3" {
     bucket                      = "terraform-state-file-bucket-fr"
     key                         = "test_project.tfstate"
-    endpoint                    = "https://terraform-state-file-bucket-fr.s3.fr-par.scw.cloud"
     region                      = "fr-par"
     skip_credentials_validation = true
     skip_region_validation      = true
     skip_requesting_account_id  = true
+    endpoints = {
+      s3  = "https://s3.fr-par.scw.cloud"
+    }
   }
 }
