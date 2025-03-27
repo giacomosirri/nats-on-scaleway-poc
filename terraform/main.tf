@@ -12,5 +12,5 @@ variable "project_name" {
 }
 
 resource "scaleway_mnq_nats_account" "main" {
-  name = "nats"-var.project_name
+  name = "nats-${var.project_name}"
 }
