@@ -4,5 +4,5 @@ terraform {
       source = "scaleway/scaleway"
     }
   }
-  required_version = ">= 1.1"
+  required_version = ">= 1.1.0"
 }
