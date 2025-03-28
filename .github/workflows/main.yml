@@ -19,7 +19,6 @@ jobs:
           echo "SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
           echo "AWS_ACCESS_KEY_ID=${{ secrets.SCW_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
-      - run: echo $AWS_ACCESS_KEY_ID
 
       - name: Initialize Terraform
         run: terraform init
