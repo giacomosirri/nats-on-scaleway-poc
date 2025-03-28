@@ -33,12 +33,10 @@ jobs:
         working-directory: terraform
 
       - name: Run terraform plan
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
         run: terraform plan -var project_name=test -out release.tfplan
         working-directory: terraform
     
       - name: Post comment to Pull Request
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
         uses: borchero/terraform-plan-comment@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
