@@ -21,7 +21,7 @@ jobs:
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
 
       - name: Initialize Terraform
-        run: terraform init
+        run: terraform init -upgrade
         working-directory: terraform
 
       - name: Run terraform destroy
