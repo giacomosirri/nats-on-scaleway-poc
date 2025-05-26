@@ -5,27 +5,17 @@ provider "scaleway" {
   zone  	        = "fr-par-1"
 }
 
-variable "project_name" {
-  type        = string
-  description = "You can set meaningful names for Scaleway resources by setting this variable."
-  default     = "test-project"
+module "kubernetes_module" {
+  source = "./kubernetes-module"
+  cluster_name = "data-aggr-k8s-cluster-${var.app_name}"
 }
 
 resource "scaleway_mnq_nats_account" "main" {
-  name        = "nats-${var.project_name}"
-}
-
-resource "scaleway_instance_ip" "public_ip" {}
-
-resource "scaleway_instance_server" "web" {
-  name        = "vm-${var.project_name}"
-  type        = "COPARM1-2C-8G"
-  image       = "ubuntu_noble"
-  ip_id       = scaleway_instance_ip.public_ip.id
+  name        = "nats-${var.app_name}"
 }
 
 resource "scaleway_rdb_instance" "main" {
-  name           = "db-${var.project_name}"
+  name           = "db-${var.app_name}"
   node_type      = "DB-DEV-S"
   engine         = "PostgreSQL-15"
   is_ha_cluster  = true
