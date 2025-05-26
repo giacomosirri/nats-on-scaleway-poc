@@ -1,4 +1,4 @@
-name: Main workflow
+name: Plan or deploy resources
 
 on:
   workflow_dispatch:
