@@ -40,7 +40,7 @@ resource "scaleway_k8s_pool" "pool_multi_az" {
   name                   = "pool-${each.value}"
   zone                   = each.key
   tags                   = ["multi-az"]
-  node_type              = "DEV1-M"
+  node_type              = "GP1-XS"
 
   cluster_id             = scaleway_k8s_cluster.kapsule_multi_az.id
 
