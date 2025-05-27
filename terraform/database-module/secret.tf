@@ -24,6 +24,6 @@ resource "scaleway_secret_version" "secret_data" {
     password = random_password.db_password.result
     host = scaleway_rdb_instance.postgre_server.load_balancer[0].hostname
     dbname = scaleway_rdb_instance.postgre_server.name
-    port = scaleway_rdb_instance.postgre_server.load_balancer[0].port
+    port = string(scaleway_rdb_instance.postgre_server.load_balancer[0].port)
   })
 }
