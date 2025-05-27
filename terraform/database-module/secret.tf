@@ -18,12 +18,12 @@ resource "random_password" "db_password" {
 resource "scaleway_secret_version" "secret_data" {
   description = "v1"
   secret_id   = scaleway_secret.db_credentials.id
-  data        = {
+  data        = jsonencode({
     engine = "postgres"
     username = scaleway_rdb_user.db_admin.name
     password = random_password.db_password.result
     host = scaleway_rdb_instance.postgre_server.load_balancer[0].hostname
     dbname = scaleway_rdb_instance.postgre_server.name
     port = scaleway_rdb_instance.postgre_server.load_balancer[0].port
-  }
+  })
 }
