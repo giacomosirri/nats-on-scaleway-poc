@@ -4,7 +4,7 @@ terraform {
   # simultaneous access to the same plan.
   backend "s3" {
     bucket                      = "terraform-state-file-bucket-fr"
-    key                         = "test_project.tfstate"
+    key                         = "project-scw-target.tfstate"
     region                      = "fr-par"
     skip_credentials_validation = true
     skip_region_validation      = true
