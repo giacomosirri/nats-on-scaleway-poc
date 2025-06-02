@@ -42,3 +42,5 @@ terraform.rc
 
 *.txt
 *.md
+
+kubeconfig*
