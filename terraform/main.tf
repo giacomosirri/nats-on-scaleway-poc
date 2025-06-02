@@ -6,20 +6,21 @@ provider "scaleway" {
 }
 
 module "kubernetes_module" {
-  source       = "./kubernetes-module"
+  source       = "./modules/kubernetes"
   cluster_name = "data-aggr-k8s-cluster-${var.app_name}"
 }
 
-resource "scaleway_mnq_nats_account" "nats_acc" {
-  name = "nats-${var.app_name}"
-}
-
-resource "scaleway_mnq_nats_credentials" "nats_creds" {
-  account_id = scaleway_mnq_nats_account.nats_acc.id
-}
-
 module "database_module" {
-  source               = "./database-module"
+  source               = "./modules/database"
   database_server_name = "postgresql-db-${var.app_name}"
   database_name        = "sensor-data-db"
+}
+
+module "nats_module" {
+  source = "./modules/nats"
+  nats_account_name = "nats-account-${var.app_name}"
+}
+
+module "secret_module" {
+  source = "./modules/secret"
 }
