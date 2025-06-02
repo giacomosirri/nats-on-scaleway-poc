@@ -7,6 +7,11 @@ resource "scaleway_rdb_instance" "postgre_server" {
   disable_backup = true
 }
 
+resource "random_password" "db_password" {
+  length  = 16
+  special = true
+}
+
 resource "scaleway_rdb_user" "db_admin" {
   instance_id = scaleway_rdb_instance.postgre_server.id
   name        = "admin"
@@ -17,4 +22,10 @@ resource "scaleway_rdb_user" "db_admin" {
 resource "scaleway_rdb_database" "sensor_data_db" {
   instance_id    = scaleway_rdb_instance.postgre_server.id
   name           = "${var.database_name}"
+}
+
+# Output database admin's password to store it inside a vault/secret manager.
+output "admin_password" {
+  value = scaleway_rdb_user.db_admin.password
+  sensitive = true
 }
