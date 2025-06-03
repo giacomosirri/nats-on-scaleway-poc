@@ -8,10 +8,6 @@ variable "db_connection" {
     port     = string
   })
   description = "Database connection details."
-  default     = {
-    engine   = "postgres"
-    port     = "5432"
-  }
 }
 
 variable "nats_credentials_file" {
