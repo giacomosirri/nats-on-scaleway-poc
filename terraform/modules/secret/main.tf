@@ -21,7 +21,7 @@ resource "scaleway_secret" "nats_credentials" {
   description = "Information needed to access the NATS server."
   tags        = ["nats"]
 
-  type        = "certificate"
+  type        = "opaque"
 }
 
 resource "scaleway_secret_version" "nats_secret_data" {
