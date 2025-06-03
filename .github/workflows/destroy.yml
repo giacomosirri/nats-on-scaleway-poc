@@ -3,7 +3,7 @@ name: Destroy resources
 on: 
   workflow_dispatch:
   schedule:
-    - cron: 0 18 * * 1-5
+    - cron: 0 16 * * 1-5
 
 jobs:
   destroy-all:
