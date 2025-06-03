@@ -17,10 +17,19 @@ module "database_module" {
 }
 
 module "nats_module" {
-  source = "./modules/nats"
+  source            = "./modules/nats"
   nats_account_name = "nats-account-${var.app_name}"
 }
 
 module "secret_module" {
-  source = "./modules/secret"
+  source        = "./modules/secret"
+  db_connection = {
+    engine   = "postgres"
+    username = module.database_module.admin_username
+    password = module.database_module.admin_password
+    host     = module.database_module.host
+    dbname   = module.database_module.name
+    port     = module.database_module.port
+  }
+  nats_credentials_file = module.nats_module.nats_creds
 }

@@ -1,8 +1,8 @@
 # Create a Secret Manager instance and store sensitive information.
 
-# Database credentials management
-resource "scaleway_secret" "db_credentials" {
-  name        = "db-credentials"
+# Database connection information
+resource "scaleway_secret" "db_connection" {
+  name        = "db-connection"
   description = "Information needed to access the ${scaleway_rdb_instance.postgre_server.name} database."
   tags        = ["postgresql"]
 
@@ -11,15 +11,8 @@ resource "scaleway_secret" "db_credentials" {
 
 resource "scaleway_secret_version" "db_secret_data" {
   description = "v1"
-  secret_id   = scaleway_secret.db_credentials.id
-  data        = jsonencode({
-    engine = "postgres"
-    username = scaleway_rdb_user.db_admin.name
-    password = random_password.db_password.result
-    host = scaleway_rdb_instance.postgre_server.load_balancer[0].hostname
-    dbname = scaleway_rdb_instance.postgre_server.name
-    port = tostring(scaleway_rdb_instance.postgre_server.load_balancer[0].port)
-  })
+  secret_id   = scaleway_secret.db_connection.id
+  data        = jsonencode(var.db_connection)
 }
 
 # NATS server credentials management
@@ -34,5 +27,5 @@ resource "scaleway_secret" "nats_credentials" {
 resource "scaleway_secret_version" "nats_secret_data" {
   description = "v1"
   secret_id   = scaleway_secret.nats_credentials.id
-  data        = scaleway_mnq_nats_credentials.nats_creds.file
+  data        = var.nats_credentials_file
 }
