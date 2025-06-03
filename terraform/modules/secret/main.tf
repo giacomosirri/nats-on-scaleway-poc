@@ -3,7 +3,7 @@
 # Database connection information
 resource "scaleway_secret" "db_connection" {
   name        = "db-connection"
-  description = "Information needed to access the ${scaleway_rdb_instance.postgre_server.name} database."
+  description = "Information needed to access the ${var.db_connection.db_name} database."
   tags        = ["postgresql"]
 
   type        = "database_credentials"
