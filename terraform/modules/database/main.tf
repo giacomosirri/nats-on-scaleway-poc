@@ -10,6 +10,8 @@ resource "scaleway_rdb_instance" "postgre_server" {
 resource "random_password" "db_password" {
   length  = 16
   special = true
+  min_numeric = 1
+  min_upper = 1
 }
 
 resource "scaleway_rdb_user" "db_admin" {
