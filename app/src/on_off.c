@@ -32,7 +32,7 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, void *userdat
     return total_size;
 }
 
-char *getNatsCredentials()
+char* getPlainTextCredentials()
 {
     CURL *curl;
     CURLcode res;
@@ -44,16 +44,17 @@ char *getNatsCredentials()
     // Scaleway API Access Key
     const char *token = "6a336881-1ce2-4ba9-a760-917fc8b3f886"; // Read from env
     char *api_endpoint = "https://api.scaleway.com/secret-manager/v1beta1/regions/%s/secrets-by-path/versions/latest/access?project_id=%s&secret_name=%s&secret_path=%s";
+    char *decoded_secret = NULL;
 
     // Allocate memory for the buffer
     buffer = malloc(sizeof(struct Buffer));
     if (buffer == NULL) {
-        fprintf(stderr, "Failed to allocate memory for buffer\n");
+        fprintf(stderr, "Failed to allocate memory for buffer.\n");
         return NULL;
     }
-    buffer->data = malloc(BUFFER_SIZE); // Allocate 1KB for the response data
+    buffer->data = malloc(BUFFER_SIZE); // Allocate BUFFER_SIZE KB for the response data
     if (buffer->data == NULL) {
-        fprintf(stderr, "Failed to allocate memory for response data\n");
+        fprintf(stderr, "Failed to allocate memory for response data.\n");
         free(buffer);
         return NULL;
     }
@@ -62,10 +63,11 @@ char *getNatsCredentials()
     char url[512];
     snprintf(url, sizeof(url), api_endpoint, region, project_id, secret_name, secret_path);
 
-    // Construct the auth header
+    // Construct the authentication header.
     char auth_header[256];
     snprintf(auth_header, sizeof(auth_header), "X-Auth-Token: %s", token);
 
+    // Create the struct to contain the headers of the CURL request.
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");
     headers = curl_slist_append(headers, auth_header);
@@ -89,37 +91,25 @@ char *getNatsCredentials()
             if (!root) {
                 fprintf(stderr, "JSON parse error: %s\n", error.text);
             } else {
+                // Parse the JSON response to extract the secret.
                 json_t *secret_data = json_object_get(root, "data");
                 if (json_is_string(secret_data)) {
                     gsize out_len;
-                    guchar *decoded = g_base64_decode(json_string_value(secret_data), &out_len);
-                    //printf("Decoded: %.*s\n", (int)out_len, decoded);
-                    FILE *file = fopen("nats-credentials.txt", "w");
-                    if (file) {
-                        fwrite(decoded, 1, out_len, file);
-                        fclose(file);
-                        printf("Credentials saved to nats-credentials.txt\n");
-                    } else {
-                        fprintf(stderr, "Failed to open file for writing\n");
-                    }
-                    // Free the decoded data
-                    free(buffer->data);
-                    free(buffer);
-                    //printf("Data: %s\n", json_string_value(secret_data));
+                    // Set the return value of this function.
+                    char *decoded_credentials = (char *)(g_base64_decode(json_string_value(secret_data), &out_len));
                 } else {
                     printf("Data field not found or not a string\n");
                 }
                 json_decref(root); // Free memory
             }
         }
-
         curl_easy_cleanup(curl);
     }
 
     curl_slist_free_all(headers);
     curl_global_cleanup();
 
-    return "";
+    return decoded_credentials;
 }
 
 int nats_Cleanup(natsConnection *conn, natsOptions *opts, natsStatus s)
@@ -133,27 +123,31 @@ int nats_Cleanup(natsConnection *conn, natsOptions *opts, natsStatus s)
 
 int main(int argc, char **argv)
 {
+    char filename[] = "nats-credentials.txt";
     char natsServerUrl[] = "nats://nats.mnq.fr-par.scaleway.com:4222";
+
     natsConnection *conn = NULL;
     natsStatus s;
     natsOptions *opts = NULL;
     
-    getNatsCredentials();
-
-    // Initialize NATS options.
+    // Initialize NATS options structure.
     s = natsOptions_Create(&opts);
     if (s != NATS_OK) {
       nats_Cleanup(conn, opts, s);
     }
-
+    
     // Set server URL.
     s = natsOptions_SetURL(opts, natsServerUrl);
     if (s != NATS_OK) {
       nats_Cleanup(conn, opts, s);
     }
 
+    // Get NATS credentials from Scaleway Secret Manager.
+    char *plainTextCredentials = getPlainTextCredentials();
+    writeCredentialsToFile(plainTextCredentials, filename);
+
     // Set credentials file path.
-    s = natsOptions_SetUserCredentialsFromFiles(opts, "nats-credentials.txt", NULL);
+    s = natsOptions_SetUserCredentialsFromFiles(opts, filename, NULL);
     if (s != NATS_OK) {
       nats_Cleanup(conn, opts, s);
     }
