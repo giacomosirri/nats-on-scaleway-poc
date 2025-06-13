@@ -32,8 +32,23 @@ static size_t write_callback(void *ptr, size_t size, size_t nmemb, void *userdat
     return total_size;
 }
 
-char* getPlainTextCredentials()
+int writeCredentialsToFile(char *credentials, char *filename, int size)
 {
+    FILE *file = fopen(filename, "w");
+    if (file) {
+        fwrite(credentials, 1, size, file);
+        fclose(file);
+        printf("Credentials saved to %s\n", filename);
+        return 1;
+    } else {
+        fprintf(stderr, "Failed to open file for writing\n");
+        return 0;
+    }
+}
+
+int getPlainTextCredentials(char *decoded_credentials)
+{
+    gsize out_len = 0;
     CURL *curl;
     CURLcode res;
     struct Buffer *buffer;
@@ -50,13 +65,13 @@ char* getPlainTextCredentials()
     buffer = malloc(sizeof(struct Buffer));
     if (buffer == NULL) {
         fprintf(stderr, "Failed to allocate memory for buffer.\n");
-        return NULL;
+        return 0;
     }
     buffer->data = malloc(BUFFER_SIZE); // Allocate BUFFER_SIZE KB for the response data
     if (buffer->data == NULL) {
         fprintf(stderr, "Failed to allocate memory for response data.\n");
         free(buffer);
-        return NULL;
+        return 0;
     }
     buffer->size = 0; // Initialize size to 0
 
@@ -94,9 +109,12 @@ char* getPlainTextCredentials()
                 // Parse the JSON response to extract the secret.
                 json_t *secret_data = json_object_get(root, "data");
                 if (json_is_string(secret_data)) {
-                    gsize out_len;
-                    // Set the return value of this function.
-                    char *decoded_credentials = (char *)(g_base64_decode(json_string_value(secret_data), &out_len));
+                    ;
+                    guchar *creds = g_base64_decode(json_string_value(secret_data), &out_len);
+                    for (int i=0; i<(int)out_len; i++) {
+                        decoded_credentials[i] = creds[i];
+                    }
+                    decoded_credentials[out_len] = '\0'; // Null-terminate the string
                 } else {
                     printf("Data field not found or not a string\n");
                 }
@@ -106,15 +124,20 @@ char* getPlainTextCredentials()
         curl_easy_cleanup(curl);
     }
 
+    // Cleanup CURL resources.
     curl_slist_free_all(headers);
     curl_global_cleanup();
 
-    return decoded_credentials;
+    free(buffer->data);
+    free(buffer);
+
+    // Return the length of the decoded credentials.
+    return (int)out_len;
 }
 
 int nats_Cleanup(natsConnection *conn, natsOptions *opts, natsStatus s)
 {
-    printf("%s\n", natsStatus_GetText(s));
+    printf("NATS status: %s\n", natsStatus_GetText(s));
     natsConnection_Destroy(conn);
     natsOptions_Destroy(opts);
     nats_Close();
@@ -123,8 +146,9 @@ int nats_Cleanup(natsConnection *conn, natsOptions *opts, natsStatus s)
 
 int main(int argc, char **argv)
 {
+    char plain_text_credentials[BUFFER_SIZE];
     char filename[] = "nats-credentials.txt";
-    char natsServerUrl[] = "nats://nats.mnq.fr-par.scaleway.com:4222";
+    char nats_server_url[] = "nats://nats.mnq.fr-par.scaleway.com:4222";
 
     natsConnection *conn = NULL;
     natsStatus s;
@@ -132,39 +156,35 @@ int main(int argc, char **argv)
     
     // Initialize NATS options structure.
     s = natsOptions_Create(&opts);
-    if (s != NATS_OK) {
-      nats_Cleanup(conn, opts, s);
-    }
+    if (s != NATS_OK) goto cleanup;
     
     // Set server URL.
-    s = natsOptions_SetURL(opts, natsServerUrl);
-    if (s != NATS_OK) {
-      nats_Cleanup(conn, opts, s);
-    }
+    s = natsOptions_SetURL(opts, nats_server_url);
+    if (s != NATS_OK) goto cleanup;
 
     // Get NATS credentials from Scaleway Secret Manager.
-    char *plainTextCredentials = getPlainTextCredentials();
-    writeCredentialsToFile(plainTextCredentials, filename);
+    int credentials_size = getPlainTextCredentials(plain_text_credentials);
+    if (credentials_size == 0) {
+        fprintf(stderr, "Failed to retrieve NATS credentials.\n");
+        goto cleanup;
+    }
 
+    int ok = writeCredentialsToFile(plain_text_credentials, filename, credentials_size);
+    if (!ok) goto cleanup;
+    
     // Set credentials file path.
     s = natsOptions_SetUserCredentialsFromFiles(opts, filename, NULL);
-    if (s != NATS_OK) {
-      nats_Cleanup(conn, opts, s);
-    }
+    if (s != NATS_OK) goto cleanup;
 
     // Connect to the NATS server.
     s = natsConnection_Connect(&conn, opts);
-    if (s != NATS_OK) {
-      nats_Cleanup(conn, opts, s);
-    }
+    if (s != NATS_OK) goto cleanup;
 
     // Publish a message to subject "foo".
     s = natsConnection_PublishString(conn, "foo", "Hello from C!");
-    if (s != NATS_OK) {
-        nats_Cleanup(conn, opts, s);
-    }
+    if (s != NATS_OK) goto cleanup;
 
     printf("Message published to subject 'foo'\n");
-    // Final cleanup.
-    nats_Cleanup(conn, opts, s);
+
+    cleanup: return nats_Cleanup(conn, opts, s);
 }
