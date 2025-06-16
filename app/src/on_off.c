@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <unistd.h>
 #include <nats/nats.h>
 #include <curl/curl.h>
 #include <jansson.h>
@@ -167,6 +169,13 @@ int main(int argc, char **argv)
     natsStatus s;
     natsOptions *opts = NULL;
     
+    if (argc != 3) {
+        return 1; // Expecting exactly two arguments.
+    }
+
+    char *subject = argv[1]; // Use the first argument as the NATS subject
+    int interval = atoi(argv[2]); // Use the second argument as the interval between two consecutive signals
+
     // Initialize NATS options structure.
     s = natsOptions_Create(&opts);
     if (s != NATS_OK) goto cleanup;
@@ -193,11 +202,16 @@ int main(int argc, char **argv)
     s = natsConnection_Connect(&conn, opts);
     if (s != NATS_OK) goto cleanup;
 
-    // Publish a message to subject "foo".
-    s = natsConnection_PublishString(conn, "foo", "Hello from C!");
-    if (s != NATS_OK) goto cleanup;
-
-    printf("Message published to subject 'foo'\n");
+    while (true) {
+        // Publish a message to the subject.
+        s = natsConnection_PublishString(conn, subject, "Hello from C!");
+        if (s != NATS_OK) {
+            goto cleanup;
+        } else {
+            printf("Message published to subject 'foo'\n");
+            sleep(interval); // Sleep for the specified interval
+        }
+    }
 
     cleanup: return nats_Cleanup(conn, opts, s);
 }
