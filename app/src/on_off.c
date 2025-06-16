@@ -229,11 +229,10 @@ int main(int argc, char **argv)
     s = natsConnection_Connect(&conn, opts);
     if (s != NATS_OK) goto cleanup;
 
-    if (strcmp(topic, "on_off") == 0) {
-        // Setup signal handler to handle SIGINT (Ctrl+C), so that the program sends 
-        // the "VEHICLE OFF" signal just before shutting down.
-        signal(SIGINT, handle_sigint);
+    // Setup signal handler to handle SIGINT (Ctrl+C), so that the program shuts down gracefully.
+    signal(SIGINT, handle_sigint);
 
+    if (strcmp(topic, "on_off") == 0) {
         // Send the "VEHICLE ON" signal to the "on_off" subject of this vehicle. 
         s = natsConnection_PublishString(conn, nats_subject, "1");
         printf("Sent VEHICLE ON signal to subject: %s\n", nats_subject);
@@ -245,18 +244,19 @@ int main(int argc, char **argv)
         // Send the "VEHICLE OFF" signal to the "on_off" subject of this vehicle. 
         s = natsConnection_PublishString(conn, nats_subject, "0");
         printf("Sent VEHICLE OFF signal to subject: %s\n", nats_subject);
+        printf("Shutting down...\n");
         if (s != NATS_OK) goto cleanup;
+    } else {
+        while (!stop) {
+            s = natsConnection_PublishString(conn, nats_subject, "14.32");
+            printf("Message published to subject: %s\n", nats_subject);
+            if (s != NATS_OK) goto cleanup;
+
+            sleep(interval); // Sleep for the specified interval
+        }
+        printf("SIGINT received, shutting down...\n");
+        goto cleanup;
     }
-    // while (true) {
-    //     // Publish a message to the subject.
-    //     s = natsConnection_PublishString(conn, subject, "Hello from C!");
-    //     if (s != NATS_OK) {
-    //         goto cleanup;
-    //     } else {
-    //         printf("Message published to subject 'foo'\n");
-    //         sleep(interval); // Sleep for the specified interval
-    //     }
-    //}
 
     cleanup: return nats_Cleanup(conn, opts, s);
 }
