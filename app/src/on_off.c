@@ -9,12 +9,17 @@
 #include <glib.h>
 
 int BUFFER_SIZE = 4096; // Size of the buffer for the response payload
+volatile sig_atomic_t stop = 0;
 
 // Buffer structure to hold the JSON response payload
 struct Buffer {
     char *data;
     size_t size;
 };
+
+void handle_sigint(int sig) {
+    stop = 1;
+}
 
 static size_t write_callback(void *payload_chunk, size_t size, size_t nmemb, void *user_buffer) {
     struct Buffer *buffer = (struct Buffer *) user_buffer;
@@ -159,6 +164,24 @@ int nats_Cleanup(natsConnection *conn, natsOptions *opts, natsStatus s)
     return (s == NATS_OK ? 0 : 1);
 }
 
+char* build_nats_subject(const char* vehicle_id, const char* topic) {
+    const char* prefix = "vehicle";
+    const char* dot = ".";
+
+    size_t len = strlen(prefix) + strlen(vehicle_id) + strlen(dot) + strlen(topic) + 1; // +1 for null terminator
+    char* subject = malloc(len);
+    if (!subject) return NULL; // malloc failed
+
+    // Concatenate the strings to form the subject.
+    strcpy(subject, prefix);
+    strcat(subject, dot);
+    strcat(subject, vehicle_id);
+    strcat(subject, dot);
+    strcat(subject, topic);
+
+    return subject;
+}
+
 int main(int argc, char **argv)
 {
     char plain_text_credentials[BUFFER_SIZE];
@@ -169,12 +192,16 @@ int main(int argc, char **argv)
     natsStatus s;
     natsOptions *opts = NULL;
     
-    if (argc != 3) {
+    if (argc != 4) {
         return 1; // Expecting exactly two arguments.
     }
 
-    char *subject = argv[1]; // Use the first argument as the NATS subject
-    int interval = atoi(argv[2]); // Use the second argument as the interval between two consecutive signals
+    char *vehicle_id = argv[1];
+    char *topic = argv[2];
+    int interval = atoi(argv[3]); // The interval between two consecutive signals
+
+    // Create the NATS subject with this format: "vehicle.<vehicle_id>.<topic>".
+    char *nats_subject = build_nats_subject(vehicle_id, topic);
 
     // Initialize NATS options structure.
     s = natsOptions_Create(&opts);
@@ -202,16 +229,34 @@ int main(int argc, char **argv)
     s = natsConnection_Connect(&conn, opts);
     if (s != NATS_OK) goto cleanup;
 
-    while (true) {
-        // Publish a message to the subject.
-        s = natsConnection_PublishString(conn, subject, "Hello from C!");
-        if (s != NATS_OK) {
-            goto cleanup;
-        } else {
-            printf("Message published to subject 'foo'\n");
-            sleep(interval); // Sleep for the specified interval
-        }
+    if (strcmp(topic, "on_off") == 0) {
+        // Setup signal handler to handle SIGINT (Ctrl+C), so that the program sends 
+        // the "VEHICLE OFF" signal just before shutting down.
+        signal(SIGINT, handle_sigint);
+
+        // Send the "VEHICLE ON" signal to the "on_off" subject of this vehicle. 
+        s = natsConnection_PublishString(conn, nats_subject, "1");
+        printf("Sent VEHICLE ON signal to subject: %s\n", nats_subject);
+        if (s != NATS_OK) goto cleanup;
+
+        // Wait for the SIGINT signal to be received.
+        while (!stop);
+
+        // Send the "VEHICLE OFF" signal to the "on_off" subject of this vehicle. 
+        s = natsConnection_PublishString(conn, nats_subject, "0");
+        printf("Sent VEHICLE OFF signal to subject: %s\n", nats_subject);
+        if (s != NATS_OK) goto cleanup;
     }
+    // while (true) {
+    //     // Publish a message to the subject.
+    //     s = natsConnection_PublishString(conn, subject, "Hello from C!");
+    //     if (s != NATS_OK) {
+    //         goto cleanup;
+    //     } else {
+    //         printf("Message published to subject 'foo'\n");
+    //         sleep(interval); // Sleep for the specified interval
+    //     }
+    //}
 
     cleanup: return nats_Cleanup(conn, opts, s);
 }
