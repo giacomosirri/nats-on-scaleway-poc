@@ -182,6 +182,13 @@ char* build_nats_subject(const char* vehicle_id, const char* topic) {
     return subject;
 }
 
+double getRandomValue(double min, double max) 
+{
+    double scale = rand() / (double) RAND_MAX; // Scale in [0, 1)
+    double value = min + scale * (max - min);
+    return value;
+}
+
 int main(int argc, char **argv)
 {
     char plain_text_credentials[BUFFER_SIZE];
@@ -193,7 +200,7 @@ int main(int argc, char **argv)
     natsOptions *opts = NULL;
     
     if (argc != 4) {
-        return 1; // Expecting exactly two arguments.
+        return 1; // Expecting exactly two arguments
     }
 
     char *vehicle_id = argv[1];
@@ -248,8 +255,13 @@ int main(int argc, char **argv)
         if (s != NATS_OK) goto cleanup;
     } else {
         while (!stop) {
-            s = natsConnection_PublishString(conn, nats_subject, "14.32");
-            printf("Message published to subject: %s\n", nats_subject);
+            double value = getRandomValue(0.0, 100.0); // Generate a random value between 0 and 100
+            char string_value[32];
+            snprintf(string_value, sizeof(string_value), "%.2f", value); // Cast to a string with 2 decimal digits
+
+            // Send the signal to the appropriate subject for this vehicle.
+            s = natsConnection_PublishString(conn, nats_subject, string_value);
+            printf("%s: %s\n", nats_subject, string_value);
             if (s != NATS_OK) goto cleanup;
 
             sleep(interval); // Sleep for the specified interval
