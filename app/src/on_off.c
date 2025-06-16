@@ -6,62 +6,66 @@
 #include <jansson.h>
 #include <glib.h>
 
-int BUFFER_SIZE = 4096; // Size of the buffer for response data
+int BUFFER_SIZE = 4096; // Size of the buffer for the response payload
 
-// Buffer structure to hold JSON response data
+// Buffer structure to hold the JSON response payload
 struct Buffer {
     char *data;
     size_t size;
 };
 
-static size_t write_callback(void *ptr, size_t size, size_t nmemb, void *userdata) {
-    // Cast userdata to Buffer type.
-    struct Buffer *buffer = (struct Buffer *)userdata;
+static size_t write_callback(void *payload_chunk, size_t size, size_t nmemb, void *user_buffer) {
+    struct Buffer *buffer = (struct Buffer *) user_buffer;
     // 'size' represents the size of each element, 'nmemb' is the number of elements.
     size_t total_size = size * nmemb;
+    // Prevent buffer overflow.
     if (total_size + buffer->size > BUFFER_SIZE - 1) {
-      fprintf(stderr, "Buffer overflow prevented: %zu bytes exceeds buffer size of %d\n", total_size, BUFFER_SIZE);
-      return 0; // Prevent buffer overflow
+        fprintf(stderr, "Buffer overflow prevented: %zu bytes exceeds buffer size of %d\n", total_size, BUFFER_SIZE);
+        return 0;
     }
-    // Copy in-place the content to the buffer.
-    memcpy(&(buffer->data[buffer->size]), ptr, total_size);
-    // Move the pointer forward by the size of the data written.
+    // Copy in-place this chunk of the payload to the memory buffer.
+    memcpy(&(buffer->data[buffer->size]), payload_chunk, total_size);
+    // Move the pointer forward by the size of the chunk.
     buffer->size += total_size;
     // Ensure null-termination.
     buffer->data[buffer->size] = '\0';
+    // Return the total size of the data written.
     return total_size;
 }
 
 int writeCredentialsToFile(char *credentials, char *filename, int size)
 {
     FILE *file = fopen(filename, "w");
-    if (file) {
+    if (file == NULL) {
+        fprintf(stderr, "Failed to open file for writing\n");
+        return 0;
+    } else {
         fwrite(credentials, 1, size, file);
         fclose(file);
         printf("Credentials saved to %s\n", filename);
         return 1;
-    } else {
-        fprintf(stderr, "Failed to open file for writing\n");
-        return 0;
     }
-}
+  }
 
-int getPlainTextCredentials(char *decoded_credentials)
+int getPlainTextCredentials(char *decoded_credentials_string)
 {
-    gsize out_len = 0;
+    gsize credentials_len = 0; // Length of the decoded credentials
     CURL *curl;
     CURLcode res;
     struct Buffer *buffer;
-    const char *region = "fr-par";
-    const char *project_id = "d43489e8-6103-4cc8-823b-7235300e81ec";
-    const char *secret_name = "nats-credentials";
-    const char *secret_path = "/";
-    // Scaleway API Access Key
-    const char *token = "6a336881-1ce2-4ba9-a760-917fc8b3f886"; // Read from env
+    char *region = "fr-par";
+    char *project_id = "d43489e8-6103-4cc8-823b-7235300e81ec";
+    char *secret_name = "nats-credentials";
+    char *secret_path = "/";
     char *api_endpoint = "https://api.scaleway.com/secret-manager/v1beta1/regions/%s/secrets-by-path/versions/latest/access?project_id=%s&secret_name=%s&secret_path=%s";
-    char *decoded_secret = NULL;
+    char *scaleway_token = getenv("SCW_ACCESS_KEY");
 
-    // Allocate memory for the buffer
+    if (scaleway_token == NULL) {
+        fprintf(stderr, "Cannot retrieve Scaleway access key from environment variables.\n");
+        return 0;
+    }
+
+    // Allocate memory for the buffer.
     buffer = malloc(sizeof(struct Buffer));
     if (buffer == NULL) {
         fprintf(stderr, "Failed to allocate memory for buffer.\n");
@@ -75,32 +79,36 @@ int getPlainTextCredentials(char *decoded_credentials)
     }
     buffer->size = 0; // Initialize size to 0
 
+    // Create the API endpoint URL string.
     char url[512];
     snprintf(url, sizeof(url), api_endpoint, region, project_id, secret_name, secret_path);
 
     // Construct the authentication header.
     char auth_header[256];
-    snprintf(auth_header, sizeof(auth_header), "X-Auth-Token: %s", token);
+    snprintf(auth_header, sizeof(auth_header), "X-Auth-Token: %s", scaleway_token);
 
     // Create the struct to contain the headers of the CURL request.
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");
     headers = curl_slist_append(headers, auth_header);
 
+    // Initialize the CURL library.
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
 
     if (curl) {
+        // Set CURL options for the request.
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, buffer); // Write to stdout
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, buffer); // Set the fourth argument of the callback function to the buffer
 
+        // Perform the CURL request.
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
             fprintf(stderr, "Request failed: %s\n", curl_easy_strerror(res));
         } else {
-            // Parse JSON using jansson
+            // Parse the returned JSON payload using jansson.
             json_error_t error;
             json_t *root = json_loads(buffer->data, 0, &error);
             if (!root) {
@@ -108,15 +116,20 @@ int getPlainTextCredentials(char *decoded_credentials)
             } else {
                 // Parse the JSON response to extract the secret.
                 json_t *secret_data = json_object_get(root, "data");
-                if (json_is_string(secret_data)) {
-                    ;
-                    guchar *creds = g_base64_decode(json_string_value(secret_data), &out_len);
-                    for (int i=0; i<(int)out_len; i++) {
-                        decoded_credentials[i] = creds[i];
-                    }
-                    decoded_credentials[out_len] = '\0'; // Null-terminate the string
+                if (!json_is_string(secret_data)) {
+                    fprintf(stderr, "Data field not found or not a string\n");
                 } else {
-                    printf("Data field not found or not a string\n");
+                    guchar *decoded_credentials = g_base64_decode(json_string_value(secret_data), &credentials_len);
+                    if (credentials_len > BUFFER_SIZE) {
+                        fprintf(stderr, "Decoded credentials length exceeds buffer size.\n");
+                        return 0;
+                    } else {
+                        // Cast the decoded credential value to an array of chars.
+                        for (int i=0; i<(int)credentials_len; i++) {
+                            decoded_credentials_string[i] = decoded_credentials[i];
+                        }
+                        decoded_credentials_string[credentials_len] = '\0'; // Null-terminate the string
+                    }
                 }
                 json_decref(root); // Free memory
             }
@@ -132,7 +145,7 @@ int getPlainTextCredentials(char *decoded_credentials)
     free(buffer);
 
     // Return the length of the decoded credentials.
-    return (int)out_len;
+    return (int)credentials_len;
 }
 
 int nats_Cleanup(natsConnection *conn, natsOptions *opts, natsStatus s)
