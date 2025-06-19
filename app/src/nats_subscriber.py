@@ -3,6 +3,7 @@ import asyncio
 import nats
 
 data = {
+    "location": [],
     "fuel": [],
     "speed": [],
     "brake_temp": []
@@ -12,15 +13,12 @@ data = {
 async def message_read(msg):
     print(f"Message received at {msg.timestamp} on subject: {msg.subject}")
     topic = msg.subject.split('.')[2]
-    if topic not in [*data.keys(), "on_off"]:
+    if topic not in data.keys():
         print(f"Message is on an unexpected subject: {msg.subject}")
     else:
-        if topic == "on_off":
-            print(f"Status: {"ON" if int(msg.data.decode()) else "OFF"}")
-        else:
-            value = float(msg.data.decode())
-            print(f"{topic}: {value}")
-            data[topic].append((msg.timestamp, float(msg.data.decode())))
+        value = float(msg.data.decode())
+        print(f"{topic}: {value}")
+        data[topic].append((float(msg.data.decode())))
 
 
 async def subscribe(vehicle_id):

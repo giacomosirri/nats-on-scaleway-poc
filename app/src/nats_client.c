@@ -243,36 +243,21 @@ int main(int argc, char **argv)
     // Setup signal handler to handle SIGINT (Ctrl+C), so that the program shuts down gracefully.
     signal(SIGINT, handle_sigint);
 
-    if (strcmp(topic, "on_off") == 0) {
-        // Send the "VEHICLE ON" signal to the "on_off" subject of this vehicle. 
-        s = natsConnection_PublishString(conn, nats_subject, "1");
-        printf("Sent VEHICLE ON signal to subject: %s\n", nats_subject);
+    while (!stop) {
+        double value = getRandomValue(0.0, 100.0); // Generate a random value between 0 and 100
+        char string_value[32];
+        snprintf(string_value, sizeof(string_value), "%.2f", value); // Cast to a string with 2 decimal digits
+
+        // Send the signal to the appropriate subject for this vehicle.
+        s = natsConnection_PublishString(conn, nats_subject, string_value);
+        printf("%s: %s\n", nats_subject, string_value);
         if (s != NATS_OK) goto cleanup;
 
-        // Wait for the SIGINT signal to be received.
-        while (!stop);
-
-        // Send the "VEHICLE OFF" signal to the "on_off" subject of this vehicle. 
-        s = natsConnection_PublishString(conn, nats_subject, "0");
-        printf("Sent VEHICLE OFF signal to subject: %s\n", nats_subject);
-        printf("Shutting down...\n");
-        if (s != NATS_OK) goto cleanup;
-    } else {
-        while (!stop) {
-            double value = getRandomValue(0.0, 100.0); // Generate a random value between 0 and 100
-            char string_value[32];
-            snprintf(string_value, sizeof(string_value), "%.2f", value); // Cast to a string with 2 decimal digits
-
-            // Send the signal to the appropriate subject for this vehicle.
-            s = natsConnection_PublishString(conn, nats_subject, string_value);
-            printf("%s: %s\n", nats_subject, string_value);
-            if (s != NATS_OK) goto cleanup;
-
-            sleep(interval); // Sleep for the specified interval
-        }
-        printf("SIGINT received, shutting down...\n");
-        goto cleanup;
+        sleep(interval); // Sleep for the specified interval
     }
+
+    printf("SIGINT received, shutting down...\n");
+    goto cleanup;
 
     cleanup: return nats_Cleanup(conn, opts, s);
 }
