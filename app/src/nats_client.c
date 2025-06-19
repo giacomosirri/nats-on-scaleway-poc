@@ -44,12 +44,10 @@ int writeCredentialsToFile(char *credentials, char *filename, int size)
 {
     FILE *file = fopen(filename, "w");
     if (file == NULL) {
-        fprintf(stderr, "Failed to open file for writing\n");
         return 0;
     } else {
         fwrite(credentials, 1, size, file);
         fclose(file);
-        printf("Credentials saved to %s\n", filename);
         return 1;
     }
   }
@@ -192,7 +190,7 @@ double getRandomValue(double min, double max)
 int main(int argc, char **argv)
 {
     char plain_text_credentials[BUFFER_SIZE];
-    char filename[] = "nats-credentials.txt";
+    char filename[] = "../secrets/nats-credentials.txt";
     char nats_server_url[] = "nats://nats.mnq.fr-par.scaleway.com:4222";
 
     natsConnection *conn = NULL;
@@ -200,7 +198,8 @@ int main(int argc, char **argv)
     natsOptions *opts = NULL;
     
     if (argc != 4) {
-        return 1; // Expecting exactly two arguments
+        fprintf(stderr, "Usage: %s <vehicle_id> <topic> <interval>\n", argv[0]);
+        return 1; // Expecting exactly three arguments
     }
 
     char *vehicle_id = argv[1];
@@ -226,7 +225,12 @@ int main(int argc, char **argv)
     }
 
     int ok = writeCredentialsToFile(plain_text_credentials, filename, credentials_size);
-    if (!ok) goto cleanup;
+    if (ok) {
+        printf("Credentials saved to %s.\n", filename);
+    } else {
+        fprintf(stderr, "Failed to open file for writing credentials.\n");
+        goto cleanup;
+    }
     
     // Set credentials file path.
     s = natsOptions_SetUserCredentialsFromFiles(opts, filename, NULL);
