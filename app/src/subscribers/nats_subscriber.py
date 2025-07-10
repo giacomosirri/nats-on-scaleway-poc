@@ -11,7 +11,7 @@ data = {
 
 
 async def message_read(msg):
-    print(f"Message received at {msg.timestamp} on subject: {msg.subject}")
+    print(f"Message received on subject: {msg.subject}")
     topic = msg.subject.split('.')[2]
     if topic not in data.keys():
         print(f"Message is on an unexpected subject: {msg.subject}")
@@ -21,7 +21,7 @@ async def message_read(msg):
         data[topic].append((float(msg.data.decode())))
 
 
-async def subscribe(vehicle_id):
+async def subscribe():
     # Connect to the NATS server.
     nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222", user_credentials="../secrets/nats-credentials.txt")
     if not nc.is_connected:
@@ -30,8 +30,8 @@ async def subscribe(vehicle_id):
     print("Subscriber connected to NATS server.")
 
     # Subscribe to the topic.
-    await nc.subscribe(f"vehicle.{vehicle_id}.*", cb=message_read)
-    print(f"Subscribed to topic: vehicle.{vehicle_id}.*. Waiting for messages...")
+    await nc.subscribe(f"vehicle.*.*", queue="queue1", cb=message_read)
+    print(f"Subscribed to topic: vehicle.*.*. Waiting for messages...")
 
     # Keep the subscriber running to listen for messages.
     try:
@@ -42,11 +42,7 @@ async def subscribe(vehicle_id):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python nats_subscriber.py <vehicle_id>")
-        sys.exit(1)
-    vehicle_id = sys.argv[1]
-    res = asyncio.run(subscribe(vehicle_id))
+    res = asyncio.run(subscribe())
     if not res:
         print("Something went wrong during the subscription process. Shutting down...")
         sys.exit(1)
