@@ -23,6 +23,14 @@ int main(int argc, char **argv)
     char cwd[PATH_MAX];
     char filepath[PATH_MAX + sizeof(filename)];
 
+    // Find out the absolute path of the file where the credentials will be stored.
+    char *res = getcwd(cwd, sizeof(cwd));
+    if (res == NULL) {
+        fprintf(stderr, "Unable to retrieve current directory.\n");
+        return 1;
+    }
+    snprintf(filepath, sizeof(filepath), "%s/%s", cwd, filename);
+
     natsConnection *conn = NULL;
     natsStatus s;
     natsOptions *opts = NULL;
@@ -47,12 +55,6 @@ int main(int argc, char **argv)
     s = natsOptions_SetURL(opts, nats_server_url);
     if (s != NATS_OK) goto cleanup;
 
-    char *res = getcwd(cwd, sizeof(cwd));
-    if (res == NULL) {
-        fprintf(stderr, "Unable to retrieve current directory.\n");
-        return 1;
-    }
-
     // Get NATS credentials from Scaleway Secret Manager.
     int credentials_size = getPlainTextCredentials(plain_text_credentials);
     if (credentials_size == 0) {
@@ -60,7 +62,8 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
-    snprintf(filepath, sizeof(filepath), "%s/%s", cwd, filename);
+    // Preemptively retrieve the NATS credentials and store them in a file,
+    // even though they might already be there from a previous run of the program.
     int ok = writeCredentialsToFile(plain_text_credentials, filepath, credentials_size);
     if (ok) {
         printf("Credentials saved to %s.\n", filename);
