@@ -22,6 +22,26 @@ int main(int argc, char **argv)
     char nats_server_url[] = "nats://nats.mnq.fr-par.scaleway.com:4222";
     char cwd[PATH_MAX];
     char filepath[PATH_MAX + sizeof(filename)];
+    char *nats_subject = NULL;
+    natsConnection *conn = NULL;
+    natsStatus s;
+    natsOptions *opts = NULL;
+
+    // Read input arguments.
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <vehicle_id> <topic> <interval>\n", argv[0]);
+        return 1; // Expecting exactly three arguments
+    }
+    char *vehicle_id = argv[1];
+    char *topic = argv[2];
+    int interval = atoi(argv[3]); // The interval between two consecutive signals
+    if (interval <= 0) {
+        fprintf(stderr, "Interval must be a positive integer.\n");
+        return 1; // Invalid interval
+    }
+
+    // Create the NATS subject with this format: "vehicle.<vehicle_id>.<topic>".
+    nats_subject = build_nats_subject(vehicle_id, topic);
 
     // Find out the absolute path of the file where the credentials will be stored.
     char *res = getcwd(cwd, sizeof(cwd));
@@ -31,21 +51,22 @@ int main(int argc, char **argv)
     }
     snprintf(filepath, sizeof(filepath), "%s/%s", cwd, filename);
 
-    natsConnection *conn = NULL;
-    natsStatus s;
-    natsOptions *opts = NULL;
-    
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <vehicle_id> <topic> <interval>\n", argv[0]);
-        return 1; // Expecting exactly three arguments
+    // Preemptively retrieve the NATS credentials from Scaleway Secret Manager
+    // and store them in a file, even though they might already be there from
+    // a previous run of the program. This makes sure that the credentials are
+    // always up-to-date.
+    int credentials_size = get_plain_text_credentials(plain_text_credentials);
+    if (credentials_size == 0) {
+        fprintf(stderr, "Failed to retrieve NATS credentials.\n");
+        goto cleanup;
     }
-
-    char *vehicle_id = argv[1];
-    char *topic = argv[2];
-    int interval = atoi(argv[3]); // The interval between two consecutive signals
-
-    // Create the NATS subject with this format: "vehicle.<vehicle_id>.<topic>".
-    char *nats_subject = build_nats_subject(vehicle_id, topic);
+    int ok = write_credentials_to_file(plain_text_credentials, filepath, credentials_size);
+    if (ok) {
+        printf("Credentials saved to %s.\n", filename);
+    } else {
+        fprintf(stderr, "Failed to open file for writing credentials.\n");
+        goto cleanup;
+    }
 
     // Initialize NATS options structure.
     s = natsOptions_Create(&opts);
@@ -54,23 +75,6 @@ int main(int argc, char **argv)
     // Set server URL.
     s = natsOptions_SetURL(opts, nats_server_url);
     if (s != NATS_OK) goto cleanup;
-
-    // Get NATS credentials from Scaleway Secret Manager.
-    int credentials_size = get_plain_text_credentials(plain_text_credentials);
-    if (credentials_size == 0) {
-        fprintf(stderr, "Failed to retrieve NATS credentials.\n");
-        goto cleanup;
-    }
-
-    // Preemptively retrieve the NATS credentials and store them in a file,
-    // even though they might already be there from a previous run of the program.
-    int ok = write_credentials_to_file(plain_text_credentials, filepath, credentials_size);
-    if (ok) {
-        printf("Credentials saved to %s.\n", filename);
-    } else {
-        fprintf(stderr, "Failed to open file for writing credentials.\n");
-        goto cleanup;
-    }
     
     // Set credentials file path.
     s = natsOptions_SetUserCredentialsFromFiles(opts, filepath, NULL);
@@ -83,6 +87,7 @@ int main(int argc, char **argv)
     // Setup signal handler to handle SIGINT (Ctrl+C), so that the program shuts down gracefully.
     signal(SIGINT, handle_sigint);
 
+    // Loop to send signals at the specified interval until SIGINT is received.
     while (!stop) {
         double value = get_random_value(0.0, 100.0); // Generate a random value between 0 and 100
         char string_value[32];
