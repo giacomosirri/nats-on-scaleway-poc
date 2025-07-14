@@ -37,7 +37,7 @@ size_t write_callback(void *payload_chunk, size_t size, size_t nmemb, void *user
     return total_size;
 }
 
-int writeCredentialsToFile(char *credentials, char *filename, int size)
+int write_credentials_to_file(char *credentials, char *filename, int size)
 {
     FILE *file = fopen(filename, "w");
     if (file == NULL) {
@@ -49,7 +49,7 @@ int writeCredentialsToFile(char *credentials, char *filename, int size)
     }
 }
 
-int getPlainTextCredentials(char *decoded_credentials_string)
+int get_plain_text_credentials(char *decoded_credentials_string)
 {
     gsize credentials_len = 0; // Length of the decoded credentials
     CURL *curl;
@@ -178,7 +178,7 @@ char* build_nats_subject(const char* vehicle_id, const char* topic)
     return subject;
 }
 
-double getRandomValue(double min, double max) 
+double get_random_value(double min, double max) 
 {
     double scale = rand() / (double) RAND_MAX; // Scale in [0, 1)
     double value = min + scale * (max - min);

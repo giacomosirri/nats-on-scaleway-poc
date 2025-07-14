@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     if (s != NATS_OK) goto cleanup;
 
     // Get NATS credentials from Scaleway Secret Manager.
-    int credentials_size = getPlainTextCredentials(plain_text_credentials);
+    int credentials_size = get_plain_text_credentials(plain_text_credentials);
     if (credentials_size == 0) {
         fprintf(stderr, "Failed to retrieve NATS credentials.\n");
         goto cleanup;
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
     // Preemptively retrieve the NATS credentials and store them in a file,
     // even though they might already be there from a previous run of the program.
-    int ok = writeCredentialsToFile(plain_text_credentials, filepath, credentials_size);
+    int ok = write_credentials_to_file(plain_text_credentials, filepath, credentials_size);
     if (ok) {
         printf("Credentials saved to %s.\n", filename);
     } else {
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     signal(SIGINT, handle_sigint);
 
     while (!stop) {
-        double value = getRandomValue(0.0, 100.0); // Generate a random value between 0 and 100
+        double value = get_random_value(0.0, 100.0); // Generate a random value between 0 and 100
         char string_value[32];
         snprintf(string_value, sizeof(string_value), "%.2f", value); // Cast to a string with 2 decimal digits
 
