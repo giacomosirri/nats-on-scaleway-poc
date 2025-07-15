@@ -3,10 +3,11 @@ import base64
 import nats
 import os
 import sys
+from functools import partial
 from scaleway import Client
 from scaleway.secret.v1beta1.api import SecretV1Beta1API
-
-async def message_read(msg):
+    
+async def message_read(kv, msg):
     print(f"Message received on subject: {msg.subject}")
     topic = msg.subject.split('.')[2]
     if topic not in data.keys():
@@ -15,7 +16,7 @@ async def message_read(msg):
         value = float(msg.data.decode())
         print(f"{topic}: {value}")
         data[topic].append((float(msg.data.decode())))
-
+        await kv.put(msg.subject, str(value).encode())
 
 async def subscribe():
     # Connect to the NATS server.
@@ -25,8 +26,14 @@ async def subscribe():
         return False
     print("Subscriber connected to NATS server.")
 
+    # Create JetStream context.
+    js = nc.jetstream()
+
+    # Create a Key/Value store.
+    kv = await js.create_key_value(bucket='MY_KV')
+
     # Subscribe to the topic.
-    await nc.subscribe(f"vehicle.*.*", queue="queue1", cb=message_read)
+    subject = await nc.subscribe(f"vehicle.*.*", queue="queue1", cb=partial(message_read, kv))
     print(f"Subscribed to topic: vehicle.*.*. Waiting for messages...")
 
     # Keep the subscriber running to listen for messages.
@@ -34,6 +41,13 @@ async def subscribe():
         await asyncio.Event().wait()
     except (KeyboardInterrupt, asyncio.CancelledError):
         print("Shutting down...")
+        entries: list = await kv.history("vehicle.123.fuel")
+        for entry in entries:
+            print(f"Key: {entry.key}, Value: {entry.value}, Created at: {entry.created}")
+        # Remove interest in subscription.
+        await subject.unsubscribe()
+        # Terminate connection to NATS.
+        await nc.drain()
         return True
 
 
