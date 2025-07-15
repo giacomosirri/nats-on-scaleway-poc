@@ -60,14 +60,14 @@ int get_plain_text_credentials(char *decoded_credentials_string)
     char *secret_name = "nats-credentials";
     char *secret_path = "/";
     char *api_endpoint = "https://api.scaleway.com/secret-manager/v1beta1/regions/%s/secrets-by-path/versions/latest/access?project_id=%s&secret_name=%s&secret_path=%s";
-    char *scaleway_token = getenv("SCW_ACCESS_KEY");
+    char *scaleway_token = getenv("SCW_SECRET_KEY");
 
     if (scaleway_token == NULL) {
         fprintf(stderr, "Cannot retrieve Scaleway access key from environment variables.\n");
         return 0;
     }
 
-    // Allocate memory for the buffer.
+    // Allocate memory for the buffer where to temporarily store the credentials.
     buffer = malloc(sizeof(struct Buffer));
     if (buffer == NULL) {
         fprintf(stderr, "Failed to allocate memory for buffer.\n");

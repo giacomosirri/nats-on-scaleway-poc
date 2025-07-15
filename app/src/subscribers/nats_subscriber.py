@@ -1,14 +1,10 @@
-import sys
 import asyncio
+import base64
 import nats
-
-data = {
-    "location": [],
-    "fuel": [],
-    "speed": [],
-    "brake_temp": []
-}
-
+import os
+import sys
+from scaleway import Client
+from scaleway.secret.v1beta1.api import SecretV1Beta1API
 
 async def message_read(msg):
     print(f"Message received on subject: {msg.subject}")
@@ -23,7 +19,7 @@ async def message_read(msg):
 
 async def subscribe():
     # Connect to the NATS server.
-    nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222", user_credentials="../secrets/nats-credentials.txt")
+    nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222", user_credentials=FILE_PATH)
     if not nc.is_connected:
         print("Subscriber failed to connect to NATS server.")
         return False
@@ -41,12 +37,47 @@ async def subscribe():
         return True
 
 
-if __name__ == "__main__":
-    res = asyncio.run(subscribe())
-    if not res:
-        print("Something went wrong during the subscription process. Shutting down...")
+FILE_PATH = "/".join([os.getcwd(), "secrets/nats-credentials.txt"])
+if not os.path.exists(os.path.dirname(FILE_PATH)):
+    try:
+        os.makedirs(os.path.dirname(FILE_PATH))
+    except OSError as e:
+        print(f"Failed to create directory for NATS credentials: {e}")
         sys.exit(1)
-    else:
-        print("Subscriber has been shut down successfully.")
-        print(f"Data received: {data}", flush=True)
-        sys.exit(0)
+        
+data = {
+    "location": [],
+    "fuel": [],
+    "speed": [],
+    "brake_temp": []
+}
+
+scw_client = Client(
+    access_key=os.environ["SCW_ACCESS_KEY"],
+    secret_key=os.environ["SCW_SECRET_KEY"],
+    default_project_id="d43489e8-6103-4cc8-823b-7235300e81ec",
+    default_region="fr-par",
+    default_zone="fr-par-1"
+)
+ssm_api = SecretV1Beta1API(scw_client)
+base64_nats_credentials = ssm_api.access_secret_version_by_path(secret_path="/",
+                                                                secret_name="nats-credentials",
+                                                                revision="latest")
+nats_credentials = base64.b64decode(base64_nats_credentials.data).decode("utf-8")
+
+try:
+    with open(FILE_PATH, "w") as f:
+        f.write(nats_credentials)
+    print("NATS credentials have been written to disk successfully.")
+except IOError as e:
+    print(f"Failed to write NATS credentials to file: {e}")
+    sys.exit(1)
+
+res = asyncio.run(subscribe())
+if not res:
+    print("Something went wrong during the subscription process. Shutting down...")
+    sys.exit(1)
+else:
+    print("Subscriber has been shut down successfully.")
+    print(f"Data received: {data}", flush=True)
+    sys.exit(0)
