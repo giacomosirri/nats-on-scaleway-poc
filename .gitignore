@@ -45,5 +45,5 @@ terraform.rc
 
 kubeconfig*
 
-/*.c/
-*/bin/
+**/bin/
+**/__pycache__/
