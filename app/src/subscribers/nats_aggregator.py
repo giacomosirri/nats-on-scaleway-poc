@@ -22,11 +22,9 @@ async def get_or_create_kv_bucket(js, bucket_name):
             return None
     return kv
 
-async def main():
-    credentials_file_path = write_nats_credentials_to_file(get_nats_credentials())
-    seen_revisions = {}
+async def main(nats_credentials_file):
     nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222",
-                            user_credentials=credentials_file_path)
+                            user_credentials=nats_credentials_file)
     js = nc.jetstream()
 
     kv = await get_or_create_kv_bucket(js, "telemetry")
@@ -51,6 +49,8 @@ async def main():
 
         vehicle_ids = list(map(lambda key: key.split('.')[1], keys))  # Extract the topic from the key
         
+        seen_revisions = {}
+
         for vehicle_id in vehicle_ids:
             this_vehicle_keys = list(filter(lambda key: key.startswith(f"vehicle.{vehicle_id}."), keys))
             if len(this_vehicle_keys) == 0:
@@ -86,4 +86,5 @@ async def main():
                 print(f"{topic}: {value if value is not None else 'No data'}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    credentials_file_path = write_nats_credentials_to_file(get_nats_credentials())
+    asyncio.run(main(credentials_file_path))
