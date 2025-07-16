@@ -24,7 +24,7 @@ size_t write_callback(void *payload_chunk, size_t size, size_t nmemb, void *user
     size_t total_size = size * nmemb;
     // Prevent buffer overflow.
     if (total_size + buffer->size > BUFFER_SIZE - 1) {
-        fprintf(stderr, "Buffer overflow prevented: %zu bytes exceeds buffer size of %d\n", total_size, BUFFER_SIZE);
+        // Buffer overflow prevented. The buffer is too small to hold all the data.
         return 0;
     }
     // Copy in-place this chunk of the payload to the memory buffer.
@@ -63,19 +63,19 @@ int get_plain_text_credentials(char *decoded_credentials_string)
     char *scaleway_token = getenv("SCW_SECRET_KEY");
 
     if (scaleway_token == NULL) {
-        fprintf(stderr, "Cannot retrieve Scaleway access key from environment variables.\n");
+        fprintf(stderr, "[ERROR] Data producer cannot retrieve Scaleway access key from its environment variables.\n");
         return 0;
     }
 
     // Allocate memory for the buffer where to temporarily store the credentials.
     buffer = malloc(sizeof(struct Buffer));
     if (buffer == NULL) {
-        fprintf(stderr, "Failed to allocate memory for buffer.\n");
+        fprintf(stderr, "[ERROR] Generic internal error in data producer.\n");
         return 0;
     }
     buffer->data = malloc(BUFFER_SIZE); // Allocate BUFFER_SIZE KB for the response data
     if (buffer->data == NULL) {
-        fprintf(stderr, "Failed to allocate memory for response data.\n");
+        fprintf(stderr, "[ERROR] Generic internal error in data producer.\n");
         free(buffer);
         return 0;
     }
@@ -103,27 +103,28 @@ int get_plain_text_credentials(char *decoded_credentials_string)
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, buffer); // Set the fourth argument of the callback function to the buffer
+        // Set the buffer as the fourth argument of the callback function.
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, buffer); 
 
         // Perform the CURL request.
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-            fprintf(stderr, "Request failed: %s\n", curl_easy_strerror(res));
+            fprintf(stderr, "[ERROR] CURL request to Scaleway Secret Manager failed: %s\n", curl_easy_strerror(res));
         } else {
             // Parse the returned JSON payload using jansson.
             json_error_t error;
             json_t *root = json_loads(buffer->data, 0, &error);
             if (!root) {
-                fprintf(stderr, "JSON parse error: %s\n", error.text);
+                fprintf(stderr, "[ERROR] Payload returned by Scaleway Secret Manager is not valid: %s\n", error.text);
             } else {
                 // Parse the JSON response to extract the secret.
                 json_t *secret_data = json_object_get(root, "data");
                 if (!json_is_string(secret_data)) {
-                    fprintf(stderr, "Data field not found or not a string\n");
+                    fprintf(stderr, "[ERROR] Payload returned by Scaleway Secret Manager is not valid.\n");
                 } else {
                     guchar *decoded_credentials = g_base64_decode(json_string_value(secret_data), &credentials_len);
                     if (credentials_len > BUFFER_SIZE) {
-                        fprintf(stderr, "Decoded credentials length exceeds buffer size.\n");
+                        fprintf(stderr, "[ERROR] Generic internal error in data producer.\n");
                         return 0;
                     } else {
                         // Cast the decoded credential value to an array of chars.
@@ -152,7 +153,7 @@ int get_plain_text_credentials(char *decoded_credentials_string)
 
 int nats_Cleanup(natsConnection *conn, natsOptions *opts, natsStatus s)
 {
-    printf("NATS status: %s\n", natsStatus_GetText(s));
+    printf("[DEBUG] NATS Cleanup... status: %s\n", natsStatus_GetText(s));
     natsConnection_Destroy(conn);
     natsOptions_Destroy(opts);
     nats_Close();

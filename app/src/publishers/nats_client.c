@@ -29,26 +29,22 @@ int main(int argc, char **argv)
 
     // Read input arguments.
     if (argc != 4) {
-        fprintf(stderr, "Usage: %s <vehicle_id> <topic> <interval>\n", argv[0]);
+        fprintf(stderr, "[ERROR] Usage: %s <vehicle_id> <topic> <interval>, with interval > 0\n", argv[0]);
         return 1; // Expecting exactly three arguments
     }
     char *vehicle_id = argv[1];
     char *topic = argv[2];
     int interval = atoi(argv[3]); // The interval between two consecutive signals
     if (interval <= 0) {
-        fprintf(stderr, "Interval must be a positive integer.\n");
+        fprintf(stderr, "[ERROR] Usage: %s <vehicle_id> <topic> <interval>, with interval > 0\n", argv[0]);
         return 1; // Invalid interval
     }
 
     // Create the NATS subject with this format: "vehicle.<vehicle_id>.<topic>".
     nats_subject = build_nats_subject(vehicle_id, topic);
 
-    // Find out the absolute path of the file where the credentials will be stored.
-    char *res = getcwd(cwd, sizeof(cwd));
-    if (res == NULL) {
-        fprintf(stderr, "Unable to retrieve current directory.\n");
-        return 1;
-    }
+    // Calculate the absolute path of the file where the credentials will be stored.
+    getcwd(cwd, sizeof(cwd));
     snprintf(filepath, sizeof(filepath), "%s/%s", cwd, filename);
 
     // Preemptively retrieve the NATS credentials from Scaleway Secret Manager
@@ -57,14 +53,14 @@ int main(int argc, char **argv)
     // always up-to-date.
     int credentials_size = get_plain_text_credentials(plain_text_credentials);
     if (credentials_size == 0) {
-        fprintf(stderr, "Failed to retrieve NATS credentials.\n");
+        fprintf(stderr, "[ERROR] Data producer failed to retrieve NATS credentials.\n");
         goto cleanup;
     }
     int ok = write_credentials_to_file(plain_text_credentials, filepath, credentials_size);
     if (ok) {
-        printf("Credentials saved to %s.\n", filename);
+        printf("[DEBUG] Data producer saved NATS credentials.\n", filename);
     } else {
-        fprintf(stderr, "Failed to open file for writing credentials.\n");
+        fprintf(stderr, "[ERROR] Data producer failed to open file for writing credentials.\n");
         goto cleanup;
     }
 
@@ -101,7 +97,7 @@ int main(int argc, char **argv)
         sleep(interval); // Sleep for the specified interval
     }
 
-    printf("SIGINT received, shutting down...\n");
+    printf("[DEBUG] Data producer received a shutdown request. Shutting down...\n");
     goto cleanup;
 
     cleanup: return nats_Cleanup(conn, opts, s);
