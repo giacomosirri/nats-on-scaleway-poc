@@ -39,15 +39,12 @@ def write_nats_credentials_to_file(nats_credentials) -> str | None:
         try:
             os.makedirs(os.path.dirname(file_path))
         except OSError as e:
-            print(f"[ERROR][{get_current_localized_time()}] Failed to create directory for NATS credentials: {e}")
             return None
         
     try:
         # Write the NATS credentials to the file and return the file path.
         with open(file_path, "w") as f:
             f.write(nats_credentials)
-        print(f"[LOG][{get_current_localized_time()}] NATS credentials have been written to disk successfully.")
         return file_path
     except IOError as e:
-        print(f"Failed to write NATS credentials to file: {e}")
         return None

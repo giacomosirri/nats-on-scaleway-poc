@@ -13,7 +13,7 @@ async def message_read(kv, msg):
         print(f"[WARNING][{get_current_localized_time()}] Data consumer received a message on an unexpected subject: {msg.subject}. Skipping...")
     else:
         value = float(msg.data.decode())
-        print(f"[WARNING][{get_current_localized_time()}] New value received by data consumer. Subject: {msg.subject}, value: {value}. Saving this data in the KeyValue store...")
+        print(f"[DEBUG][{get_current_localized_time()}] New message received by data consumer ({msg.subject}: {value}). Saving it in the KeyValue store...")
         await kv.put(msg.subject, str(value).encode())
 
 async def subscribe(nats_credentials_file):
@@ -39,7 +39,7 @@ async def subscribe(nats_credentials_file):
     try:
         await asyncio.Event().wait()
     except (KeyboardInterrupt, asyncio.CancelledError):
-        print(f"[INFO][{get_current_localized_time()}] Data consumer received a shutdown signal. Shutting down...")
+        print(f"[INFO][{get_current_localized_time()}] Data consumer received a shutdown signal. Shutting down...", flush=True)
         # Remove interest in subscription.
         await subject.unsubscribe()
         # Terminate connection to NATS.
@@ -47,4 +47,9 @@ async def subscribe(nats_credentials_file):
 
 if __name__ == "__main__":
     credentials_file_path = write_nats_credentials_to_file(get_nats_credentials())
-    res = asyncio.run(subscribe(credentials_file_path))
+    if credentials_file_path is None:
+        print(f"[ERROR][{get_current_localized_time()}] Data consumer failed to write NATS credentials to file. Shutting down...", flush=True)
+        sys.exit(1)
+    else:
+        print(f"[INFO][{get_current_localized_time()}] Data consumer saved NATS credentials to file: {credentials_file_path}.")
+        res = asyncio.run(subscribe(credentials_file_path))

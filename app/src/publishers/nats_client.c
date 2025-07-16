@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     }
     int ok = write_credentials_to_file(plain_text_credentials, filepath, credentials_size);
     if (ok) {
-        printf("[DEBUG] Data producer saved NATS credentials.\n", filename);
+        printf("[INFO] Data producer saved NATS credentials successfully.\n");
     } else {
         fprintf(stderr, "[ERROR] Data producer failed to open file for writing credentials.\n");
         goto cleanup;
@@ -91,13 +91,13 @@ int main(int argc, char **argv)
 
         // Send the signal to the appropriate subject for this vehicle.
         s = natsConnection_PublishString(conn, nats_subject, string_value);
-        printf("[INFO] New value sent by data producer. Subject: %s, value: %s\n", nats_subject, string_value);
+        printf("[DEBUG] New message sent by data producer. Subject: %s, value: %s\n", nats_subject, string_value);
         if (s != NATS_OK) goto cleanup;
 
         sleep(interval); // Sleep for the specified interval
     }
 
-    printf("[DEBUG] Data producer received a shutdown signal. Shutting down...\n");
+    printf("[INFO] Data producer received a shutdown signal. Shutting down...\n");
     goto cleanup;
 
     cleanup: return nats_Cleanup(conn, opts, s);
