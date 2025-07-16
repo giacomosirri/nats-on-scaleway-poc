@@ -3,57 +3,32 @@ import nats
 from nats.js.errors import NoKeysError
 from datetime import datetime
 import pytz
-import os
-import sys
-from scaleway import Client
-from scaleway.secret.v1beta1.api import SecretV1Beta1API
-import base64
+from nats_credentials_handler import *
 
-# Dictionary to store last seen revisions
-seen_revisions = {}
-
-FILE_PATH = "/".join([os.getcwd(), "secrets/nats-credentials.txt"])
-if not os.path.exists(os.path.dirname(FILE_PATH)):
+async def get_or_create_kv_bucket(js, bucket_name):
+    # Try to retrieve an existing KV bucket
+    # If it does not exist, create a new one.
     try:
-        os.makedirs(os.path.dirname(FILE_PATH))
-    except OSError as e:
-        print(f"Failed to create directory for NATS credentials: {e}")
-        sys.exit(1)
-
-scw_client = Client(
-    access_key=os.environ["SCW_ACCESS_KEY"],
-    secret_key=os.environ["SCW_SECRET_KEY"],
-    default_project_id="d43489e8-6103-4cc8-823b-7235300e81ec",
-    default_region="fr-par",
-    default_zone="fr-par-1"
-)
-ssm_api = SecretV1Beta1API(scw_client)
-base64_nats_credentials = ssm_api.access_secret_version_by_path(secret_path="/",
-                                                                secret_name="nats-credentials",
-                                                                revision="latest")
-nats_credentials = base64.b64decode(base64_nats_credentials.data).decode("utf-8")
-
-try:
-    with open(FILE_PATH, "w") as f:
-        f.write(nats_credentials)
-    print("NATS credentials have been written to disk successfully.")
-except IOError as e:
-    print(f"Failed to write NATS credentials to file: {e}")
-    sys.exit(1)
+        kv = await js.key_value(bucket_name)
+    except:
+        try:
+            kv = await js.create_key_value(bucket=bucket_name)
+        except Exception as e:
+            return None
+    return kv
 
 async def main():
-    nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222", user_credentials=FILE_PATH)
-
+    credentials_file_path = write_nats_credentials_to_file(get_nats_credentials())
+    seen_revisions = {}
+    nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222",
+                            user_credentials=credentials_file_path)
     js = nc.jetstream()
-
-    # Create or bind to existing KV bucket
-    try:
-        kv = await js.create_key_value(bucket="telemetry")
-    except:
-        kv = await js.key_value("telemetry")
-
-    print("Connected to KV bucket: telemetry")
-
+    
+    kv = await get_or_create_kv_bucket(js, "telemetry")
+    if kv is None:
+        print(f"[ERROR][{get_current_localized_time()}] Failed to connect to or create KV bucket.")
+        return 1
+    
     while True:
         # Wait until the top of the next minute
         now = datetime.now(pytz.timezone("Europe/Berlin"))
@@ -86,4 +61,5 @@ async def main():
                 # Unchanged
                 pass
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
