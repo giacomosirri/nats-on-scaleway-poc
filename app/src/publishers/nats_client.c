@@ -91,13 +91,13 @@ int main(int argc, char **argv)
 
         // Send the signal to the appropriate subject for this vehicle.
         s = natsConnection_PublishString(conn, nats_subject, string_value);
-        printf("%s: %s\n", nats_subject, string_value);
+        printf("[INFO] New value sent by data producer. Subject: %s, value: %s\n", nats_subject, string_value);
         if (s != NATS_OK) goto cleanup;
 
         sleep(interval); // Sleep for the specified interval
     }
 
-    printf("[DEBUG] Data producer received a shutdown request. Shutting down...\n");
+    printf("[DEBUG] Data producer received a shutdown signal. Shutting down...\n");
     goto cleanup;
 
     cleanup: return nats_Cleanup(conn, opts, s);
