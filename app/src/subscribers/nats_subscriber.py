@@ -1,9 +1,9 @@
 import asyncio
 import nats
 import sys
-import os
 from functools import partial
-from nats_credentials_handler import get_current_localized_time, write_nats_credentials_to_file, get_nats_credentials
+from nats_credentials_handler import write_nats_credentials_to_file, get_nats_credentials
+from utils import get_or_create_kv_bucket, get_current_localized_time
 
 valid_keys = ["location", "fuel", "speed", "brake_temp"]
 
@@ -19,16 +19,17 @@ async def message_read(kv, msg):
 async def subscribe(nats_credentials_file):
     # Connect to the NATS server.
     nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222", user_credentials=nats_credentials_file)
-    if not nc.is_connected:
-        print(f"[ERROR][{get_current_localized_time()}] Data consumer failed to connect to NATS server.")
-        return False
-    print(f"[INFO][{get_current_localized_time()}] Subscriber connected to NATS server.")
-
+    
     # Create JetStream context.
     js = nc.jetstream()
 
     # Create a Key/Value store.
-    kv = await js.key_value('telemetry')
+    kv = await get_or_create_kv_bucket(js, "telemetry")
+    if kv is None:
+        print(f"[ERROR][{get_current_localized_time()}] Data consumer failed to connect to KV bucket:{kv._name}. Aborting...")
+        return 1
+    else:
+        print(f"[INFO][{get_current_localized_time()}] Data consumer is connected to KV bucket: {kv._name}.")
 
     # Subscribe to the topic.
     topic = "vehicle.*.*"

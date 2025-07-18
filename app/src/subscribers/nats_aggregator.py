@@ -5,23 +5,12 @@ from nats.js.errors import NoKeysError
 from datetime import datetime
 import pytz
 from nats_credentials_handler import *
+from utils import get_or_create_kv_bucket, get_current_localized_time
 
 def get_sleeping_time():
     # Wait until the top of the next minute
     now = datetime.now(pytz.timezone("Europe/Berlin"))
     return 60 - now.second - now.microsecond / 1e6
-
-async def get_or_create_kv_bucket(js, bucket_name):
-    # Try to retrieve an existing KV bucket
-    # If it does not exist, create a new one.
-    try:
-        kv = await js.key_value(bucket_name)
-    except:
-        try:
-            kv = await js.create_key_value(bucket=bucket_name)
-        except Exception as e:
-            return None
-    return kv
 
 async def main(nats_credentials_file):
     nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222",
@@ -30,7 +19,7 @@ async def main(nats_credentials_file):
 
     kv = await get_or_create_kv_bucket(js, "telemetry")
     if kv is None:
-        print(f"[ERROR][{get_current_localized_time()}] Failed to connect to KV bucket:{kv._name}. Aborting...")
+        print(f"[ERROR][{get_current_localized_time()}] Data aggregator failed to connect to KV bucket:{kv._name}. Aborting...")
         return 1
     else:
         print(f"[INFO][{get_current_localized_time()}] Data aggregator is connected to KV bucket: {kv._name}.")
