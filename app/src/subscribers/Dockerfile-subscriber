@@ -1,0 +1,13 @@
+FROM python:3.12.11-alpine3.22
+
+WORKDIR /app
+
+COPY * .
+
+# Upgrade system packages and install Python and pip
+RUN apk update && apk upgrade && apk add --no-cache python3 py3-pip
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+CMD [ "python3", "nats_subscriber.py"]
