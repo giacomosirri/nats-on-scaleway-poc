@@ -85,5 +85,5 @@ if __name__ == "__main__":
         print(f"[ERROR][{get_current_localized_time()}] Data consumer failed to write NATS credentials to file. Shutting down...", flush=True)
         sys.exit(1)
     else:
-        print(f"[INFO][{get_current_localized_time()}] Data consumer saved NATS credentials to file: {credentials_file_path}.")
+        print(f"[INFO][{get_current_localized_time()}] Data consumer saved NATS credentials to file.")
         asyncio.run(main(credentials_file_path))
