@@ -40,8 +40,9 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-*.txt
+*.creds
 *.md
+**/.env
 
 kubeconfig*
 
