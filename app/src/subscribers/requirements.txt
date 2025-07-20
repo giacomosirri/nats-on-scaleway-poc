@@ -1,0 +1,4 @@
+nats-py
+nkeys
+pytz
+scaleway
