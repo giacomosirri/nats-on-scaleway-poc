@@ -21,8 +21,8 @@ def get_nats_credentials():
 # This implementation has the advantage of incapsulating all the logic
 # of writing NATS credentials to a file into a single function.
 # Callers don't need to worry about the file path or directory structure.
-def write_nats_credentials_to_file(nats_credentials) -> str | None:
-    file_path = "/".join([os.getcwd(), "secrets/nats-credentials.txt"])
+def write_nats_credentials_to_file(nats_credentials):
+    file_path = "/".join([os.getcwd(), "secrets/nats-credentials.creds"])
 
     # Create the directory if it does not exist.
     if not os.path.exists(os.path.dirname(file_path)):

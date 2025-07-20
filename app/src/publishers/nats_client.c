@@ -18,7 +18,7 @@ void handle_sigint(int sig)
 int main(int argc, char **argv)
 {
     char plain_text_credentials[BUFFER_SIZE];
-    char filename[] = "/secrets/nats-credentials.txt";
+    char filename[] = "/secrets/nats-credentials.creds";
     char nats_server_url[] = "nats://nats.mnq.fr-par.scaleway.com:4222";
     char cwd[PATH_MAX];
     char filepath[PATH_MAX + sizeof(filename)];
