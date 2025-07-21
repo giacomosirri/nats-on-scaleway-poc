@@ -17,9 +17,9 @@ jobs:
       matrix:
         image:
           - name: data-consumer
-            dockerfile: Dockerfile-subscriber
+            dockerfile: app/src/subscribers/Dockerfile-subscriber
           - name: data-aggregator
-            dockerfile: Dockerfile-aggregator
+            dockerfile: app/src/subscribers/Dockerfile-aggregator
 
     permissions:
       contents: read
