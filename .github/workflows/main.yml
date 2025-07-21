@@ -2,13 +2,15 @@ name: Plan or deploy resources
 
 on:
   workflow_dispatch:
-  pull_request:
-    types: [opened, edited, synchronize]
-    branches:
-      - main
-  push:
-    branches: 
-      - main
+    inputs:
+      action:
+        description: 'Choose an action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - plan + apply
 
 jobs:
   build:
@@ -44,5 +46,6 @@ jobs:
           working-directory: terraform
       
       - name: Run terraform apply
+        if: ${{ github.event.inputs.action == 'plan + apply' }}
         run: terraform apply -auto-approve release.tfplan
         working-directory: terraform
