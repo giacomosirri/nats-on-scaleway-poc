@@ -17,7 +17,7 @@ jobs:
       matrix:
         image:
           - name: data-consumer
-            dockerfile: Dockerfile-consumer
+            dockerfile: Dockerfile-subscriber
           - name: data-aggregator
             dockerfile: Dockerfile-aggregator
 
