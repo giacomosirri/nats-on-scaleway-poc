@@ -8,12 +8,18 @@ on:
     
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_CONSUMER: data-consumer
-  IMAGE_NAME_AGGREGATOR: data-aggregator
 
 jobs:
   docker:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        image:
+          - name: data-consumer
+            dockerfile: Dockerfile-consumer
+          - name: data-aggregator
+            dockerfile: Dockerfile-aggregator
 
     permissions:
       contents: read
@@ -31,32 +37,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker meta for aggregator
-        id: meta-aggregator
+      - name: Derive image tag and label
+        id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_AGGREGATOR }}
+          images: ${{ env.REGISTRY }}/${{ matrix.image.name }}
 
-      - name: Build and push Docker image of aggregator
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6.18.0
         with:
-          context: .
+          context: app/src/subscribers
           push: true
-          file: app/src/subscribers/Dockerfile-aggregator
-          tags: ${{ steps.meta-aggregator.outputs.tags }}
-          labels: ${{ steps.meta-aggregator.outputs.labels }}
-
-      - name: Docker meta for consumer
-        id: meta-consumer
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_CONSUMER }}
-
-      - name: Build and push Docker image of consumer
-        uses: docker/build-push-action@v6.18.0
-        with:
-          context: .
-          push: true
-          file: app/src/subscribers/Dockerfile-consumer
-          tags: ${{ steps.meta-consumer.outputs.tags }}
-          labels: ${{ steps.meta-consumer.outputs.labels }}
+          file: ${{ matrix.image.dockerfile }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
