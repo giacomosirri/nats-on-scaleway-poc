@@ -54,7 +54,8 @@ jobs:
       
       - name: Update the Deployment definition in place
         run: |
-          sed -i "s|image: .*|image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image.name }}:${{ steps.meta.outputs.tags }}|" k8s/${{ matrix.image.name }}-deployment.yaml
+          echo "${{ steps.meta.outputs.labels }}"
+          sed -i "s|image: .*|image: ${{ steps.meta.outputs.tags }}|" k8s/${{ matrix.image.name }}-deployment.yaml
         working-directory: k8s
 
       - name: Run kubectl apply to update the Deployment
