@@ -27,8 +27,6 @@ jobs:
         run: |
           echo "SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.SCW_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
 
       - name: Initialize Terraform
         run: terraform init -upgrade
@@ -50,9 +48,17 @@ jobs:
         run: terraform apply -auto-approve release.tfplan
         working-directory: terraform
 
-      - name: Download and save Kubeconfig
+      - name: Download Kubeconfig file
+        id: kubeconfig
         if: ${{ github.event.inputs.action == 'plan + apply' }}
         run: |
           cluster_id=$(terraform output -raw kubernetes_cluster_id)
-          echo "KUBECONFIG=`curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}/kubeconfig`" >> $GITHUB_ENV
+          echo "kubeconfig_string=`curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}/kubeconfig`" >> $GITHUB_OUTPUT
         working-directory: terraform
+
+      - name: Save the Kubeconfig file content as a repository Secret
+        uses: gliech/create-github-secret-action@v1
+        with:
+          name: KUBECONFIG
+          value: ${{ steps.kubeconfig.outputs.kubeconfig_string }}
+          pa_token: ${{ secrets.PAT_TOKEN }}
