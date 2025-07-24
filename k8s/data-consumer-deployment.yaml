@@ -15,8 +15,6 @@ spec:
       containers:
         - name: data-consumer
           image: ghrc.io/giacomosirri/data-consumer:latest
-          ports:
-            - containerPort: 8080
           resources:
             requests:
               memory: "128Mi"
