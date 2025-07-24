@@ -51,3 +51,15 @@ jobs:
           file: ${{ matrix.image.dockerfile }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: Update the Deployment definition in place
+        run: |
+          sed -i "s|image: .*|image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image.name }}:${{ steps.meta.outputs.tags }}|" k8s/${{ matrix.image.name }}-deployment.yaml
+        working-directory: k8s
+
+      - name: Run kubectl apply to update the Deployment
+        uses: actions-hub/kubectl@v1.33.3
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        with:
+          args: apply -f k8s/${{ matrix.image.name }}-deployment.yaml
