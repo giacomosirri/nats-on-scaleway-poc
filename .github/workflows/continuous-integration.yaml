@@ -54,7 +54,7 @@ jobs:
       
       - name: Update the Deployment definition in place
         run: |
-          IMAGE_NAME=`echo "${{ steps.meta.outputs.tags }}" | cut -d',' -f1`
+          IMAGE_NAME=`echo "${{ steps.meta.outputs.tags }}" | cut -d ' ' -f 1`
           echo $IMAGE_NAME
           sed -i "s/image: */image: ${IMAGE_NAME}" k8s/${{ matrix.image.name }}-deployment.yaml
         working-directory: k8s
