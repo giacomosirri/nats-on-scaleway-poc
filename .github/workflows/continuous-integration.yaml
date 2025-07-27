@@ -57,6 +57,7 @@ jobs:
           IMAGE_NAME=`echo "${{ steps.meta.outputs.tags }}" | head -n 1`
           echo $IMAGE_NAME
           sed -i "s,image: *,image: ${IMAGE_NAME}," ${{ matrix.image.name }}-deployment.yaml
+          cat ${{ matrix.image.name }}-deployment.yaml
         working-directory: k8s
 
       - name: Run kubectl apply to update the Deployment
