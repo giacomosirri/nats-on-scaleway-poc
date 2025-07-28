@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: data-aggregator
-          image: ghrc.io/giacomosirri/data-aggregator:latest
+          image: ghcr.io/giacomosirri/data-aggregator:latest
           resources:
             requests:
               memory: "256Mi"

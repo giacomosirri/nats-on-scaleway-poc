@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: data-consumer
-          image: ghrc.io/giacomosirri/data-consumer:latest
+          image: ghcr.io/giacomosirri/data-consumer:latest
           resources:
             requests:
               memory: "128Mi"
