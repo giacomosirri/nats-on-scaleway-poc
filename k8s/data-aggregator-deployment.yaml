@@ -15,6 +15,17 @@ spec:
       containers:
       - name: data-aggregator
         image: ghcr.io/giacomosirri/data-aggregator:latest
+        env:
+          - name: SCW_ACCESS_KEY
+            valueFrom:
+              configMapKeyRef:
+                name: app-config
+                key: SCW_ACCESS_KEY
+          - name: SCW_SECRET_KEY
+            valueFrom:
+              configMapKeyRef:
+                name: app-config
+                key: SCW_SECRET_KEY
         resources:
           requests:
             memory: "256Mi"
