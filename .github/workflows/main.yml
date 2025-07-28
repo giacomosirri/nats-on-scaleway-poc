@@ -70,4 +70,4 @@ jobs:
         env:
           KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         with:
-          args: create secret docker-registry ghcr-login-secret --docker-server=ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.GITHUB_TOKEN }}
+          args: create secret docker-registry ghcr-login-secret --docker-server=ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.PAT_TOKEN }} 
