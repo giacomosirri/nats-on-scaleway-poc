@@ -13,12 +13,15 @@ spec:
         app: aggregator
     spec:
       containers:
-        - name: data-aggregator
-          image: ghcr.io/giacomosirri/data-aggregator:latest
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "500m"
-            limits:
-              memory: "256Mi"
-              cpu: "500m"
+      - name: data-aggregator
+        image: ghcr.io/giacomosirri/data-aggregator:latest
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      imagePullSecrets:
+      - name: ghcr-login-secret
+

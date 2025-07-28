@@ -13,12 +13,14 @@ spec:
         app: consumer
     spec:
       containers:
-        - name: data-consumer
-          image: ghcr.io/giacomosirri/data-consumer:latest
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "500m"
+      - name: data-consumer
+        image: ghcr.io/giacomosirri/data-consumer:latest
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      imagePullSecrets:
+      - name: ghcr-login-secret
