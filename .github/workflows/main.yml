@@ -64,3 +64,13 @@ jobs:
           name: KUBECONFIG
           value: ${{ steps.kubeconfig.outputs.kubeconfig_string }}
           pa_token: ${{ secrets.PAT_TOKEN }}
+      
+      - name: Create Image Pull Secret
+        uses: actions-hub/kubectl@v1.33.3
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        with:
+          args: create secret docker-registry ghcr-login-secret \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }}
