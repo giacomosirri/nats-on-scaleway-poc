@@ -1,6 +1,5 @@
 variable "db_connection" {
   type = object({
-    engine   = string
     username = string
     password = string
     host     = string

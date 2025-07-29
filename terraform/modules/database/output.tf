@@ -15,7 +15,7 @@ output "host" {
 }
 
 output "name" {
-  value = scaleway_rdb_instance.postgre_server.load_balancer[0].name
+  value = scaleway_rdb_database.sensor_data_db.name
   sensitive = false
 }
 
