@@ -7,3 +7,8 @@ output "cluster_id" {
   value       = local.kubernetes_cluster_id
   description = "The ID of the Kubernetes cluster."
 }
+
+output "cluster_vpc_private_network_id" {
+  value       = scaleway_vpc_private_network.pn_multi_az.id
+  description = "The ID of the private network used by the Kubernetes cluster."
+}

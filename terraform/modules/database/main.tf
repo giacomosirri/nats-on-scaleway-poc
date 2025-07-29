@@ -3,15 +3,21 @@ resource "scaleway_rdb_instance" "postgre_server" {
   tags           = ["postgresql"]
   node_type      = "DB-DEV-S"
   engine         = "PostgreSQL-15"
+
   is_ha_cluster  = false
   disable_backup = true
+
+  private_network {
+    pn_id  = "${var.vpc_private_network_id}"
+    enable_ipam = true
+  }
 }
 
 resource "random_password" "db_password" {
-  length  = 16
-  special = true
+  length      = 16
+  special     = true
   min_numeric = 1
-  min_upper = 1
+  min_upper   = 1
 }
 
 resource "scaleway_rdb_user" "db_admin" {

@@ -11,9 +11,10 @@ module "kubernetes_module" {
 }
 
 module "database_module" {
-  source               = "./modules/database"
-  database_server_name = "postgresql-db-${var.app_name}"
-  database_name        = "sensor-data-db"
+  source                 = "./modules/database"
+  database_server_name   = "postgresql-db-${var.app_name}"
+  database_name          = "sensor-data-db"
+  vpc_private_network_id = module.kubernetes_module.cluster_vpc_private_network_id
 }
 
 module "nats_module" {
