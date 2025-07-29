@@ -10,7 +10,7 @@ output "admin_password" {
 }
 
 output "host" {
-  value = scaleway_rdb_instance.postgre_server.load_balancer[0].hostname
+  value = scaleway_rdb_instance.postgre_server.private_network[0].ip
   sensitive = false
 }
 
