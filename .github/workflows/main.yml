@@ -65,14 +65,28 @@ jobs:
           value: ${{ steps.kubeconfig.outputs.kubeconfig_string }}
           pa_token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Create Secret to store Scaleway keys
+      - name: Delete previous version of secret (Scaleway credentials)
+        uses: actions-hub/kubectl@v1.33.3
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        with:
+          args: delete secret scaleway-credentials
+
+      - name: Create secret to store Scaleway credentials
         uses: actions-hub/kubectl@v1.33.3
         env:
           KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         with:
           args: create secret generic scaleway-credentials --from-literal=SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} --from-literal=SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}
         
-      - name: Create Image Pull Secret
+      - name: Delete previous version of secret (image pull)
+        uses: actions-hub/kubectl@v1.33.3
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        with:
+          args: delete secret ghcr-login
+ 
+      - name: Create image pull secret
         uses: actions-hub/kubectl@v1.33.3
         env:
           KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
