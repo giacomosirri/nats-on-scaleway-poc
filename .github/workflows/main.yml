@@ -65,16 +65,16 @@ jobs:
           value: ${{ steps.kubeconfig.outputs.kubeconfig_string }}
           pa_token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Create ConfigMap to store Scaleway keys
+      - name: Create Secret to store Scaleway keys
         uses: actions-hub/kubectl@v1.33.3
         env:
           KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         with:
-          args: create configmap app-config --from-literal=SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} --from-literal=SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}
-      
+          args: create secret generic scaleway-credentials --from-literal=SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} --from-literal=SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}
+        
       - name: Create Image Pull Secret
         uses: actions-hub/kubectl@v1.33.3
         env:
           KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         with:
-          args: create secret docker-registry ghcr-login-secret --docker-server=ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.PAT_TOKEN }} --docker-email=${{ github.actor }}@users.noreply.github.com
+          args: create secret docker-registry ghcr-login --docker-server=ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.PAT_TOKEN }} --docker-email=${{ github.actor }}@users.noreply.github.com

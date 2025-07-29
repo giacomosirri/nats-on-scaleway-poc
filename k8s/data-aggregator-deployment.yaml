@@ -18,12 +18,12 @@ spec:
         env:
           - name: SCW_ACCESS_KEY
             valueFrom:
-              configMapKeyRef:
+              secretKeyRef:
                 name: app-config
                 key: SCW_ACCESS_KEY
           - name: SCW_SECRET_KEY
             valueFrom:
-              configMapKeyRef:
+              secretKeyRef:
                 name: app-config
                 key: SCW_SECRET_KEY
         resources:
