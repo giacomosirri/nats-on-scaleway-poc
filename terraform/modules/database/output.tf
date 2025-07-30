@@ -20,6 +20,6 @@ output "name" {
 }
 
 output "port" {
-  value = tostring(scaleway_rdb_instance.postgre_server.load_balancer[0].port)
+  value = tostring(scaleway_rdb_instance.postgre_server.private_network[0].port)
   sensitive = false
 }
