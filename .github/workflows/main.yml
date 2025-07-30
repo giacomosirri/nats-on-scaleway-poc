@@ -108,9 +108,11 @@ jobs:
           echo "db_host=$(echo "$DB_CONNECTION_DATA" | jq -r '.host')" >> $GITHUB_OUTPUT
           echo "db_port=$(echo "$DB_CONNECTION_DATA" | jq -r '.port')" >> $GITHUB_OUTPUT
           echo "$DB_PASSWORD=$(echo "$DB_CONNECTION_DATA" | jq -r '.password')"
-          echo "db_password=$(echo "::add-mask::$DB_PASSWORD")" >> $GITHUB_OUTPUT
+          echo "::add-mask::$DB_PASSWORD"
+          echo "db_password=$DB_PASSWORD" >> $GITHUB_OUTPUT
           echo "$DB_USERNAME=$(echo "$DB_CONNECTION_DATA" | jq -r '.username')"
-          echo "db_username=$(echo "::add-mask::$DB_USERNAME")" >> $GITHUB_OUTPUT
+          echo "::add-mask::$DB_USERNAME"
+          echo "db_username=$DB_USERNAME" >> $GITHUB_OUTPUT
 
       - name: Create secret for PostgreSQL credentials
         uses: actions-hub/kubectl@v1.33.3
