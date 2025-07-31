@@ -107,10 +107,10 @@ jobs:
           echo "db_name=$(echo "$DB_CONNECTION_DATA" | jq -r '.dbname')" >> $GITHUB_OUTPUT
           echo "db_host=$(echo "$DB_CONNECTION_DATA" | jq -r '.host')" >> $GITHUB_OUTPUT
           echo "db_port=$(echo "$DB_CONNECTION_DATA" | jq -r '.port')" >> $GITHUB_OUTPUT
-          $DB_PASSWORD=$(echo "$DB_CONNECTION_DATA" | jq -r '.password')
+          DB_PASSWORD=$(echo "$DB_CONNECTION_DATA" | jq -r '.password')
           echo "::add-mask::$DB_PASSWORD"
           echo "db_password=$DB_PASSWORD" >> $GITHUB_OUTPUT
-          $DB_USERNAME=$(echo "$DB_CONNECTION_DATA" | jq -r '.username')
+          DB_USERNAME=$(echo "$DB_CONNECTION_DATA" | jq -r '.username')
           echo "::add-mask::$DB_USERNAME"
           echo "db_username=$DB_USERNAME" >> $GITHUB_OUTPUT
 
