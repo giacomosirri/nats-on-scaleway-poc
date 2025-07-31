@@ -6,9 +6,10 @@ data:
   schema.sql: |
     CREATE SCHEMA IF NOT EXISTS vehicle_data;
     CREATE TABLE IF NOT EXISTS vehicle_data.telemetry (
-      id INTEGER PRIMARY KEY,
+      "timestamp" TIMESTAMPTZ,
+      vehicle_id INTEGER,
       brake_temp REAL,
-      "timestamp" TIMESTAMP NOT NULL,
       fuel REAL,
       speed REAL
+      PRIMARY KEY ("timestamp", vehicle_id)
     );
