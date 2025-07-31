@@ -5,11 +5,11 @@ from functools import partial
 from nats_credentials_handler import write_nats_credentials_to_file, get_nats_credentials
 from utils import get_or_create_kv_bucket, get_current_localized_time
 
-valid_keys = ["location", "fuel", "speed", "brake_temp"]
+VALID_KEYS = ["location_x", "location_y", "fuel", "speed", "brake_temp"]
 
 async def message_read(kv, msg):
     topic = msg.subject.split('.')[2]
-    if topic not in valid_keys:
+    if topic not in VALID_KEYS:
         print(f"[WARNING][{get_current_localized_time()}] Data consumer received a message on an unexpected subject: {msg.subject}. Skipping...")
     else:
         value = float(msg.data.decode())
