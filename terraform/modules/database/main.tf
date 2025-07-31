@@ -31,3 +31,10 @@ resource "scaleway_rdb_database" "sensor_data_db" {
   instance_id    = scaleway_rdb_instance.postgre_server.id
   name           = "${var.database_name}"
 }
+
+resource "scaleway_rdb_privilege" "all_permissions" {
+  instance_id   = scaleway_rdb_instance.postgre_server.id
+  user_name     = scaleway_rdb_user.db_admin.name
+  database_name = scaleway_rdb_database.sensor_data_db.name
+  permission    = "all"
+}
