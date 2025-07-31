@@ -128,13 +128,6 @@ jobs:
         with:
           args: apply -f k8s/db-schema-configmap.yaml
 
-      - name: Delete the Job that initializes the database schema
-        uses: actions-hub/kubectl@v1.33.3
-        env:
-          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
-        with:
-          args: delete job init-schema --ignore-not-found=true
-
       - name: Apply the Job that initializes the database schema
         uses: actions-hub/kubectl@v1.33.3
         env:
