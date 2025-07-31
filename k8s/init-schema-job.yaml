@@ -9,6 +9,16 @@ spec:
       - name: psql-init
         image: postgres:15
         env:
+        - name: PGHOST
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: DB_HOST
+        - name: PGPORT
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: DB_PORT
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
@@ -24,16 +34,6 @@ spec:
             secretKeyRef:
               name: db-credentials
               key: DB_NAME
-        - name: PGHOST
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: DB_HOST
-        - name: PGPORT
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: DB_PORT
         command: ["sh", "-c"]
         args:
           - psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -f /sql/schema.sql
