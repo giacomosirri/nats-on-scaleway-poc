@@ -47,10 +47,11 @@ async def main(nats_credentials_file):
                 if len(this_vehicle_keys) == 0:
                     continue
                 values = {
-                    "location": None,
+                    "location_x": None,
+                    "location_y": None,
+                    "brake_temp": None,
                     "fuel": None,
-                    "speed": None,
-                    "brake_temp": None
+                    "speed": None
                 }
 
                 for key in this_vehicle_keys:
