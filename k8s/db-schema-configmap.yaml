@@ -8,6 +8,8 @@ data:
     CREATE TABLE IF NOT EXISTS vehicle_data.telemetry (
       "timestamp" TIMESTAMPTZ,
       vehicle_id INTEGER,
+      location_x REAL,
+      location_y REAL,
       brake_temp REAL,
       fuel REAL,
       speed REAL
