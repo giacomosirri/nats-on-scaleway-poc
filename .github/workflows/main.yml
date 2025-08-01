@@ -65,6 +65,13 @@ jobs:
           value: ${{ steps.kubeconfig.outputs.kubeconfig_string }}
           pa_token: ${{ secrets.PAT_TOKEN }}
 
+      - name: Wait for all nodes to be Ready
+        uses: actions-hub/kubectl@v1.33.3
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        with:
+          args: wait --for=condition=Ready nodes --all --timeout=60s
+
       - name: Delete previous version of secret (Scaleway credentials)
         uses: actions-hub/kubectl@v1.33.3
         env:
