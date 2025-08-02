@@ -78,7 +78,7 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                 print(f"[DEBUG][{clock_time}] Data aggregation for vehicle: {vehicle_id}")
                 with db_connection.cursor() as cur:
                     cur.execute(
-                        "INSERT INTO telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                         (
                             vehicle_id,
                             values["location_x"],
