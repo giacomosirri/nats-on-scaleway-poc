@@ -19,12 +19,12 @@ spec:
         - name: SCW_ACCESS_KEY
           valueFrom:
             secretKeyRef:
-              name: app-config
+              name: scaleway-credentials
               key: SCW_ACCESS_KEY
         - name: SCW_SECRET_KEY
           valueFrom:
             secretKeyRef:
-              name: app-config
+              name: scaleway-credentials
               key: SCW_SECRET_KEY
         - name: PGHOST
           valueFrom:
