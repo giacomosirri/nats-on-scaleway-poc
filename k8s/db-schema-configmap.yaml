@@ -12,6 +12,6 @@ data:
       location_y REAL,
       brake_temp REAL,
       fuel REAL,
-      speed REAL
+      speed REAL,
       PRIMARY KEY ("timestamp", vehicle_id)
     );
