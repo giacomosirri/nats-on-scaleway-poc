@@ -2,4 +2,4 @@ nats-py
 nkeys
 pytz
 scaleway
-psycopg
+psycopg[binary]
