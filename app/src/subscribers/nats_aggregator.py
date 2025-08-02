@@ -1,18 +1,20 @@
 import asyncio
 import nats
 import sys
+import os
 from nats.js.errors import NoKeysError
 from datetime import datetime
 import pytz
 from nats_credentials_handler import *
 from utils import get_or_create_kv_bucket, get_current_localized_time
+import psycopg
 
 def get_sleeping_time():
     # Wait until the top of the next minute
     now = datetime.now(pytz.timezone("Europe/Berlin"))
     return 60 - now.second - now.microsecond / 1e6
 
-async def main(nats_credentials_file):
+async def main(nats_credentials_file, db_connection: psycopg.Connection):
     nc = await nats.connect("nats://nats.mnq.fr-par.scaleway.com:4222",
                             user_credentials=nats_credentials_file)
     js = nc.jetstream()
@@ -74,8 +76,21 @@ async def main(nats_credentials_file):
                         pass
                 # Print the collected data.
                 print(f"[DEBUG][{clock_time}] Data aggregation for vehicle: {vehicle_id}")
-                for (topic, value) in values.items():
-                    print(f"{topic}: {value if value is not None else 'No data'}")
+                with db_connection.cursor() as cur:
+                    cur.execute(
+                        "INSERT INTO telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (
+                            vehicle_id,
+                            values["location_x"],
+                            values["location_y"],
+                            values["fuel"],
+                            values["speed"],
+                            values["brake_temp"],
+                            clock_time
+                        )
+                    )
+                    db_connection.commit()
+
     except KeyboardInterrupt:
         print(f"[INFO][{get_current_localized_time()}] Data aggregator received a shutdown signal. Shutting down...", flush=True)
         await nc.close()
@@ -83,8 +98,19 @@ async def main(nats_credentials_file):
 if __name__ == "__main__":
     credentials_file_path = write_nats_credentials_to_file(get_nats_credentials())
     if credentials_file_path is None:
-        print(f"[ERROR][{get_current_localized_time()}] Data consumer failed to write NATS credentials to file. Shutting down...", flush=True)
+        print(f"[ERROR][{get_current_localized_time()}] Data aggregator failed to write NATS credentials to file. Shutting down...", flush=True)
         sys.exit(1)
     else:
-        print(f"[INFO][{get_current_localized_time()}] Data consumer saved NATS credentials to file.")
-        asyncio.run(main(credentials_file_path))
+        print(f"[INFO][{get_current_localized_time()}] Data aggregator saved NATS credentials to file.")
+        # Connect to the PostgreSQL database.
+        connection = psycopg.connect(
+            dbname=os.getenv("PGDATABASE"),
+            user=os.getenv("PGUSER"),
+            password=os.getenv("PGPASSWORD"),
+            host=os.getenv("PGHOST"),
+            port=os.getenv("PGPORT", "5432")  # Default PostgreSQL port
+        )
+        with connection:
+            print(f"[INFO][{get_current_localized_time()}] Data aggregator connected to the database.")
+            # Run the main function.
+            asyncio.run(main(credentials_file_path, db_connection=connection))
