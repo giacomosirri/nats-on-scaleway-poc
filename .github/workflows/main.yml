@@ -65,6 +65,7 @@ jobs:
               echo "Waiting for Kubeconfig file to be available..."
               sleep 10
             fi
+          done
         working-directory: terraform
 
       - name: Save the Kubeconfig file content as a repository Secret
