@@ -55,8 +55,16 @@ jobs:
         if: ${{ github.event.inputs.action == 'plan + apply' }}
         run: |
           cluster_id=$(terraform output -raw kubernetes_cluster_id)
-          echo $cluster_id
-          echo "kubeconfig_string=$(curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}/kubeconfig | jq -r .content)" >> $GITHUB_OUTPUT
+          for i in {1..10}; do
+            KUBECONFIG_JSON=$(curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}/kubeconfig")
+            if [ -n "$KUBECONFIG_JSON" ] && echo "$KUBECONFIG_JSON" | jq -r .content > /dev/null; then
+              echo "Kubeconfig file retrieved successfully."
+              echo "kubeconfig_string=$(echo $KUBECONFIG_JSON | jq -r .content)" >> $GITHUB_OUTPUT
+              break
+            else
+              echo "Waiting for Kubeconfig file to be available..."
+              sleep 10
+            fi
         working-directory: terraform
 
       - name: Save the Kubeconfig file content as a repository Secret
