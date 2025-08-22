@@ -73,8 +73,9 @@ jobs:
       - name: Configure kubeconfig file
         run: |
           mkdir -p ~/.kube
-          cat <<'EOF' > ~/.kube/config
-          ${{ needs.provision.outputs.kubeconfig_content }} | base64 -d
+          decoded_kubeconfig=$(echo "${{ needs.provision.outputs.kubeconfig_content }}" | base64 -d)
+          cat <<EOF > ~/.kube/config
+          ${decoded_kubeconfig}
           EOF
           chmod 600 ~/.kube/config
       
