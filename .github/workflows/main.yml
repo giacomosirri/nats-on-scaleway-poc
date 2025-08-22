@@ -58,6 +58,7 @@ jobs:
         run: |
           cluster_id=$(terraform output -raw kubernetes_cluster_id)
           echo "kubeconfig_string=$(curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}/kubeconfig | jq -r .content)" >> $GITHUB_OUTPUT
+          echo $kubeconfig_string
           echo "kubeconfig<<EOF" >> $GITHUB_OUTPUT
           echo "$kubeconfig_string" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
