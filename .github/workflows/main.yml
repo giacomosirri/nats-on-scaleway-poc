@@ -76,7 +76,7 @@ jobs:
           EOF
           chmod 600 ~/.kube/config
       
-      - run: kubectl get nodes
+      - run: cat ~/.kube/config
 
       # - name: Delete previous version of secret (Scaleway credentials)
       #   uses: actions-hub/kubectl@v1.33.3
