@@ -16,7 +16,7 @@ jobs:
   provision:
     runs-on: ubuntu-latest
     outputs:
-      kubeconfig_content: ${{ steps.kubeconfig.outputs.kubeconfig_string }}
+      kubeconfig_content: ${{ steps.kubeconfig.outputs.kubeconfig }}
     steps:
       - uses: actions/checkout@v4
 
