@@ -74,7 +74,7 @@ jobs:
         run: |
           mkdir -p ~/.kube
           cat <<'EOF' > ~/.kube/config
-          ${{ needs.provision.outputs.kubeconfig_content }}
+          ${{ needs.provision.outputs.kubeconfig_content }} | base64 -d
           EOF
           chmod 600 ~/.kube/config
       
