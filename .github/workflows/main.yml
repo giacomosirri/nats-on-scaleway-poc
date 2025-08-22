@@ -63,6 +63,9 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         working-directory: terraform
 
+      - name: Test
+        run: echo "${{ steps.kubeconfig.outputs.kubeconfig }}"
+
   deploy:
     runs-on: ubuntu-latest
     needs: provision
