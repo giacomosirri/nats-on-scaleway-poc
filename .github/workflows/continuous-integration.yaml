@@ -49,13 +49,18 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image.name }}
 
+      - name: Derive image tag from user input
+        if: ${{ inputs.tag != '' }}
+        id: user-tag
+        run: echo "tag=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image.name }}:${{ inputs.tag }}" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6.18.0
         with:
           context: app/src/subscribers
           push: true
           file: ${{ matrix.image.dockerfile }}
-          tags: ${{ inputs.tag || steps.meta.outputs.tags }} 
+          tags: ${{ steps.user-tag.outputs.tag || steps.meta.outputs.tags }} 
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Update the Deployment definition in place
