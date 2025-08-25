@@ -115,3 +115,11 @@ jobs:
 
       - name: Apply the Job that initializes the database schema
         run: kubectl apply -f k8s/init-schema-job.yaml
+
+      # The kubeconfig file is needed in the Deployment provisioning workflow
+      - name: Save the Kubeconfig file content as a repository Secret
+        uses: gliech/create-github-secret-action@v1
+        with:
+          name: KUBECONFIG
+          value: ${{ needs.provision.outputs.kubeconfig_content }}
+          pa_token: ${{ secrets.PAT_TOKEN }}
