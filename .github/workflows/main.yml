@@ -67,6 +67,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: provision
     steps:
+      - uses: actions/checkout@v4
+
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
 
