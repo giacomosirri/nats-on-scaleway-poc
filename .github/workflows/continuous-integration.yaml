@@ -2,6 +2,12 @@ name: Create and publish Docker images
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to apply to the Docker images'
+        required: true
+        default: ''
+        type: string
   push:
     tags:
       - 'v*'
@@ -38,6 +44,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Derive image tag and label
+        if: github.event_name == 'push'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -49,9 +56,9 @@ jobs:
           context: app/src/subscribers
           push: true
           file: ${{ matrix.image.dockerfile }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-      
+          tags: ${{ steps.meta.outputs.tags || inputs.tag }} 
+          labels: ${{ steps.meta.outputs.labels || '' }}
+
       - name: Update the Deployment definition in place
         run: |
           IMAGE_NAME=`echo "${{ steps.meta.outputs.tags }}" | head -n 1`
