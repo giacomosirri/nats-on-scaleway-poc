@@ -108,7 +108,7 @@ jobs:
           echo "db_username=$DB_USERNAME" >> $GITHUB_OUTPUT
 
       - name: Create secret for PostgreSQL credentials
-        run: kubectl create secret generic db-credentials --from-literal=DB_HOST=${{ steps.db_credentials.outputs.db_host }} --from-literal=DB_PORT=${{ steps.db_credentials.outputs.db_port }} --from-literal=DB_NAME=${{ steps.db_credentials.outputs.db_name }} --from-literal=DB_USER=${{ steps.db_credentials.outputs.db_username }} --from-literal=DB_PASSWORD=${{ steps.db_credentials.outputs.db_password }}
+        run: kubectl create secret generic db-credentials --from-literal=DB_HOST="${{ steps.db_credentials.outputs.db_host }}" --from-literal=DB_PORT="${{ steps.db_credentials.outputs.db_port }}" --from-literal=DB_NAME="${{ steps.db_credentials.outputs.db_name }}" --from-literal=DB_USER="${{ steps.db_credentials.outputs.db_username }}" --from-literal=DB_PASSWORD="${{ steps.db_credentials.outputs.db_password }}"
 
       - name: Apply the ConfigMap that contains the database schema
         run: kubectl apply -f k8s/db-schema-configmap.yaml
