@@ -54,18 +54,16 @@ jobs:
 
       - name: Download Kubeconfig content and store it as a GitHub Actions output
         id: kubeconfig
-        #if: ${{ github.event.inputs.action == 'plan + apply' }}
+        if: ${{ github.event.inputs.action == 'plan + apply' }}
         run: |
           cluster_id=$(terraform output -raw kubernetes_cluster_id)
           echo "kubeconfig=$(curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}/kubeconfig | jq -r .content)" >> $GITHUB_OUTPUT
         working-directory: terraform
 
-      - name: Test
-        run: echo "${{ steps.kubeconfig.outputs.kubeconfig }}"
-
   deploy:
     runs-on: ubuntu-latest
     needs: provision
+    if: ${{ github.event.inputs.action == 'plan + apply' }}
     steps:
       - uses: actions/checkout@v4
 
