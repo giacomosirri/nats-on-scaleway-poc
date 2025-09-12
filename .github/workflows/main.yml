@@ -114,6 +114,10 @@ jobs:
       - name: Apply the Job that initializes the database schema
         run: kubectl apply -f k8s/init-schema-job.yaml
 
+      - name: Apply the manifests related to Grafana
+        run: |
+          kubectl apply -f k8s/grafana/*.yaml
+
       # The kubeconfig file is needed in the Deployment provisioning workflow
       - name: Save the Kubeconfig file content as a repository Secret
         uses: gliech/create-github-secret-action@v1
