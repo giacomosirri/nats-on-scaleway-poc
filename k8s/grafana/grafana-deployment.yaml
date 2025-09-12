@@ -21,27 +21,27 @@ spec:
             - name: POSTGRES_HOST
               valueFrom:
                 secretKeyRef:
-                  name: db_credentials
+                  name: db-credentials
                   key: DB_HOST
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
-                  name: db_credentials
+                  name: db-credentials
                   key: DB_NAME
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: db_credentials
+                  name: db-credentials
                   key: DB_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db_credentials
+                  name: db-credentials
                   key: DB_PASSWORD
             - name: POSTGRES_PORT
               valueFrom:
                 secretKeyRef:
-                  name: db_credentials
+                  name: db-credentials
                   key: DB_PORT
           volumeMounts:
             - name: grafana-storage
