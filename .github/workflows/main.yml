@@ -117,7 +117,6 @@ jobs:
       - name: Apply the manifests related to Grafana
         run: |
           kubectl apply -f k8s/grafana/grafana-configmap.yaml
-          kubectl apply -f k8s/grafana/grafana-pvc.yaml
           kubectl apply -f k8s/grafana/grafana-deployment.yaml
           kubectl apply -f k8s/grafana/grafana-service.yaml
 
