@@ -4,18 +4,21 @@ metadata:
   name: grafana-datasources
   labels:
     grafana_datasource: "1"
-
 data:
-  datasource.yaml: |
+  postgre-datasource.yaml: |
     apiVersion: 1
     datasources:
-      - name: PostgreSQL
+      - name: grafana-postgresql-datasource
         type: postgres
-        access: proxy
         url: ${POSTGRES_HOST}:${POSTGRES_PORT}
-        database: ${POSTGRES_DB}
+        access: proxy
         user: ${POSTGRES_USER}
+        isDefault: true
+        editable: true
         secureJsonData:
           password: ${POSTGRES_PASSWORD}
         jsonData:
-          sslmode: require
+          database: ${POSTGRES_DB}
+          postgresVersion: 1500
+          sslmode: 'disable'
+          timescaledb: false
