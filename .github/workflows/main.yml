@@ -1,4 +1,4 @@
-name: Plan or deploy resources
+name: Provision resources on Scaleway
 
 on:
   workflow_dispatch:
