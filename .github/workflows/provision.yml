@@ -1,0 +1,129 @@
+name: Provision resources on Scaleway
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Choose an action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - plan + apply
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    outputs:
+      kubeconfig_content: ${{ steps.kubeconfig.outputs.kubeconfig }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Terraform setup
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.0"
+
+      - name: Set environment variables
+        run: |
+          echo "SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.SCW_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
+
+      - name: Initialize Terraform
+        run: terraform init -upgrade
+        working-directory: terraform
+
+      - name: Run terraform plan
+        run: terraform plan -var app_name=project-scw-target -out release.tfplan
+        working-directory: terraform
+
+      - name: Post build summary
+        uses: borchero/terraform-plan-comment@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          planfile: release.tfplan
+          working-directory: terraform
+      
+      - name: Run terraform apply
+        if: ${{ github.event.inputs.action == 'plan + apply' }}
+        run: terraform apply -auto-approve release.tfplan
+        working-directory: terraform
+
+      - name: Download Kubeconfig content and store it as a GitHub Actions output
+        id: kubeconfig
+        if: ${{ github.event.inputs.action == 'plan + apply' }}
+        run: |
+          cluster_id=$(terraform output -raw kubernetes_cluster_id)
+          echo "kubeconfig=$(curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}/kubeconfig | jq -r .content)" >> $GITHUB_OUTPUT
+        working-directory: terraform
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: provision
+    if: ${{ github.event.inputs.action == 'plan + apply' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig file
+        run: |
+          mkdir -p ~/.kube
+          decoded_kubeconfig=$(echo "${{ needs.provision.outputs.kubeconfig_content }}" | base64 -d)
+          cat <<EOF > ~/.kube/config
+          ${decoded_kubeconfig}
+          EOF
+          chmod 600 ~/.kube/config
+      
+      - name: Delete previous version of secrets
+        run: |
+          kubectl delete secret scaleway-credentials --ignore-not-found=true
+          kubectl delete secret ghcr-login --ignore-not-found=true
+          kubectl delete secret db-credentials --ignore-not-found=true
+
+      - name: Create secret to store Scaleway credentials
+        run: kubectl create secret generic scaleway-credentials --from-literal=SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} --from-literal=SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}
+
+      - name: Create image pull secret
+        run: kubectl create secret docker-registry ghcr-login --docker-server=ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.PAT_TOKEN }} --docker-email=${{ github.actor }}@users.noreply.github.com
+
+      - name: Retrieve the PostgreSQL credentials from Scaleway Secret Manager
+        id: db_credentials
+        run: |
+          DB_CONNECTION_DATA=$(curl -X GET -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" "https://api.scaleway.com/secret-manager/v1beta1/regions/fr-par/secrets-by-path/versions/latest/access?project_id=d43489e8-6103-4cc8-823b-7235300e81ec&secret_name=db-connection&secret_path=/" | jq -r .data | base64 -d)
+          echo "db_name=$(echo "$DB_CONNECTION_DATA" | jq -r '.dbname')" >> $GITHUB_OUTPUT
+          echo "db_host=$(echo "$DB_CONNECTION_DATA" | jq -r '.host')" >> $GITHUB_OUTPUT
+          echo "db_port=$(echo "$DB_CONNECTION_DATA" | jq -r '.port')" >> $GITHUB_OUTPUT
+          DB_PASSWORD=$(echo "$DB_CONNECTION_DATA" | jq -r '.password')
+          echo "::add-mask::$DB_PASSWORD"
+          echo "db_password=$DB_PASSWORD" >> $GITHUB_OUTPUT
+          DB_USERNAME=$(echo "$DB_CONNECTION_DATA" | jq -r '.username')
+          echo "::add-mask::$DB_USERNAME"
+          echo "db_username=$DB_USERNAME" >> $GITHUB_OUTPUT
+
+      - name: Create secret for PostgreSQL credentials
+        run: kubectl create secret generic db-credentials --from-literal=DB_HOST="${{ steps.db_credentials.outputs.db_host }}" --from-literal=DB_PORT="${{ steps.db_credentials.outputs.db_port }}" --from-literal=DB_NAME="${{ steps.db_credentials.outputs.db_name }}" --from-literal=DB_USER="${{ steps.db_credentials.outputs.db_username }}" --from-literal=DB_PASSWORD="${{ steps.db_credentials.outputs.db_password }}"
+
+      - name: Apply the ConfigMap that contains the database schema
+        run: kubectl apply -f k8s/db-schema-configmap.yaml
+
+      - name: Apply the Job that initializes the database schema
+        run: kubectl apply -f k8s/init-schema-job.yaml
+
+      - name: Apply the manifests related to Grafana
+        run: |
+          kubectl apply -f k8s/grafana/grafana-configmap.yaml
+          kubectl apply -f k8s/grafana/grafana-deployment.yaml
+          kubectl apply -f k8s/grafana/grafana-service.yaml
+
+      # The kubeconfig file is needed in the Deployment provisioning workflow
+      - name: Save the Kubeconfig file content as a repository Secret
+        uses: gliech/create-github-secret-action@v1
+        with:
+          name: KUBECONFIG
+          value: ${{ needs.provision.outputs.kubeconfig_content }}
+          pa_token: ${{ secrets.PAT_TOKEN }}
