@@ -59,7 +59,9 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                 # Compare the new values with the latest values one by one, 
                 # and if there is one new key or at least one value is different, 
                 # then write to the database.
+                print(f"[DEBUG][{clock_time}] Data aggregator found these new values for vehicle {vehicle_id}: {new_values}.")
                 old_values = latest_values.get(vehicle_id, {})
+                print(f"[DEBUG][{clock_time}] Data aggregator found these latest values for vehicle {vehicle_id}: {old_values}.")
                 update = False
 
                 for topic, new_value in new_values.items(): 
@@ -70,9 +72,6 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                 latest_values[vehicle_id] = new_values
 
                 if update:
-                    # Print the collected data.
-                    print(f"[DEBUG][{clock_time}] Data aggregation for vehicle: {vehicle_id}")
-
                     # Save the collected data to the database.
                     with db_connection.cursor() as cur:
                         cur.execute(
@@ -88,6 +87,7 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                             )
                         )
                         db_connection.commit()
+                    print(f"[INFO][{clock_time}] Data aggregator saved new data for vehicle {vehicle_id} to the database.")
 
     except KeyboardInterrupt:
         print(f"[INFO][{get_current_localized_time()}] Data aggregator received a shutdown signal. Shutting down...", flush=True)
