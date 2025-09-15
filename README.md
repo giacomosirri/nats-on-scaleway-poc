@@ -29,7 +29,7 @@ There are some constraints:
 - Microservice running Grafana
 
 ## Architecture diagram
-[Architecture diagram](architecture-diagram.png)
+![Architecture diagram](architecture-diagram.png)
 
 ## Explanation
 Scaleway provides all the necessary infrastructure resources to build a scalable cloud solution that meets every requirement of this scenario.
