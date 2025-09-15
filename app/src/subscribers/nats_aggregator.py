@@ -27,6 +27,7 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
         print(f"[INFO][{get_current_localized_time()}] Data aggregator is connected to KV bucket: {kv._name}.")
     
     try:
+        latest_values = {}
         while True:
             # Wait until the next minute starts.
             await asyncio.sleep(get_sleeping_time())
@@ -41,40 +42,32 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                 print(f"[WARNING][{get_current_localized_time()}] Data aggregator found no keys in the KV store.")
 
             vehicle_ids = set(map(lambda key: key.split('.')[1], keys))  # Extract the vehicle ids from the key
-            
-            seen_revisions = {}
 
             for vehicle_id in vehicle_ids:
-                # Has the vehicle sent any new data?
-                update = False
-                values = {
-                    "location_x": None,
-                    "location_y": None,
-                    "brake_temp": None,
-                    "fuel": None,
-                    "speed": None
-                }
+                new_values = {}
 
                 # Filter to get the topics that this vehicle has sent data on, then loop through them.
                 this_vehicle_keys = list(filter(lambda key: key.startswith(f"vehicle.{vehicle_id}."), keys))
                 
                 # The value of the variable 'key' here has format: vehicle.<vehicle_id>.<topic>.
                 for key in this_vehicle_keys:
+                    # Get the new values for this key.
                     entry = await kv.get(key)
-                    revision = entry.revision
+                    topic = key.split('.')[2]
+                    new_values[topic] = entry.value.decode()
 
-                    if key not in seen_revisions or revision > seen_revisions[key]:
-                        # The key is new or has been updated, which means the vehicle has sent new data.
+                # Compare the new values with the latest values one by one, 
+                # and if there is one new key or at least one value is different, 
+                # then write to the database.
+                old_values = latest_values.get(vehicle_id, {})
+                update = False
+
+                for topic, new_value in new_values.items(): 
+                    if topic not in old_values or old_values[topic] != new_value:
+                        old_values[topic] = new_value
                         update = True
-                        topic = entry.key.split('.')[2]
-                        if topic not in values.keys():
-                            # The key is not valid, skip it.
-                            print(f"[WARNING][{get_current_localized_time()}] {topic} is not a valid topic. Skipping...")
-                            continue
-                        else:
-                            # Update the existing value for this topic.
-                            values[topic] = entry.value.decode()
-                        seen_revisions[key] = revision
+
+                latest_values[vehicle_id] = new_values
 
                 if update:
                     # Print the collected data.
@@ -86,11 +79,11 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                             "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                             (
                                 vehicle_id,
-                                values["location_x"],
-                                values["location_y"],
-                                values["fuel"],
-                                values["speed"],
-                                values["brake_temp"],
+                                new_values["location_x"],
+                                new_values["location_y"],
+                                new_values["fuel"],
+                                new_values["speed"],
+                                new_values["brake_temp"],
                                 clock_time
                             )
                         )
