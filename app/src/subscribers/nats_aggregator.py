@@ -45,9 +45,8 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
             seen_revisions = {}
 
             for vehicle_id in vehicle_ids:
-                this_vehicle_keys = list(filter(lambda key: key.startswith(f"vehicle.{vehicle_id}."), keys))
-                if len(this_vehicle_keys) == 0:
-                    continue
+                # Has the vehicle sent any new data?
+                update = False
                 values = {
                     "location_x": None,
                     "location_y": None,
@@ -56,41 +55,46 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                     "speed": None
                 }
 
+                # Filter to get the topics that this vehicle has sent data on, then loop through them.
+                this_vehicle_keys = list(filter(lambda key: key.startswith(f"vehicle.{vehicle_id}."), keys))
+                
+                # The value of the variable 'key' here has format: vehicle.<vehicle_id>.<topic>.
                 for key in this_vehicle_keys:
                     entry = await kv.get(key)
                     revision = entry.revision
 
-                    # Write the entry to the database only if it is an actual update.
                     if key not in seen_revisions or revision > seen_revisions[key]:
                         # The key is new or has been updated, which means the vehicle has sent new data.
+                        update = True
                         topic = entry.key.split('.')[2]
                         if topic not in values.keys():
                             # The key is not valid, skip it.
                             print(f"[WARNING][{get_current_localized_time()}] {topic} is not a valid topic. Skipping...")
                             continue
                         else:
-                            # Update the existing key
+                            # Update the existing value for this topic.
                             values[topic] = entry.value.decode()
                         seen_revisions[key] = revision
 
-                        # Print the collected data.
-                        print(f"[DEBUG][{clock_time}] Data aggregation for vehicle: {vehicle_id}")
+                if update:
+                    # Print the collected data.
+                    print(f"[DEBUG][{clock_time}] Data aggregation for vehicle: {vehicle_id}")
 
-                        # Save the collected data to the database.
-                        with db_connection.cursor() as cur:
-                            cur.execute(
-                                "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                                (
-                                    vehicle_id,
-                                    values["location_x"],
-                                    values["location_y"],
-                                    values["fuel"],
-                                    values["speed"],
-                                    values["brake_temp"],
-                                    clock_time
-                                )
+                    # Save the collected data to the database.
+                    with db_connection.cursor() as cur:
+                        cur.execute(
+                            "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                            (
+                                vehicle_id,
+                                values["location_x"],
+                                values["location_y"],
+                                values["fuel"],
+                                values["speed"],
+                                values["brake_temp"],
+                                clock_time
                             )
-                            db_connection.commit()
+                        )
+                        db_connection.commit()
 
     except KeyboardInterrupt:
         print(f"[INFO][{get_current_localized_time()}] Data aggregator received a shutdown signal. Shutting down...", flush=True)
