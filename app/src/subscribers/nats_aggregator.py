@@ -58,38 +58,39 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
 
                 for key in this_vehicle_keys:
                     entry = await kv.get(key)
+                    revision = entry.revision
 
-                    rev = entry.revision
-                    if key not in seen_revisions or rev > seen_revisions[key]:
+                    # Write the entry to the database only if it is an actual update.
+                    if key not in seen_revisions or revision > seen_revisions[key]:
                         # The key is new or has been updated, which means the vehicle has sent new data.
                         topic = entry.key.split('.')[2]
                         if topic not in values.keys():
-                            # The key is not valid.
+                            # The key is not valid, skip it.
                             print(f"[WARNING][{get_current_localized_time()}] {topic} is not a valid topic. Skipping...")
+                            continue
                         else:
                             # Update the existing key
                             values[topic] = entry.value.decode()
-                        seen_revisions[key] = rev
-                    else:
-                        # The key has not been updated since the last time it was checked,
-                        # which means the vehicle has not sent new data, possibly because it is now off.
-                        pass
-                # Print the collected data.
-                print(f"[DEBUG][{clock_time}] Data aggregation for vehicle: {vehicle_id}")
-                with db_connection.cursor() as cur:
-                    cur.execute(
-                        "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                        (
-                            vehicle_id,
-                            values["location_x"],
-                            values["location_y"],
-                            values["fuel"],
-                            values["speed"],
-                            values["brake_temp"],
-                            clock_time
-                        )
-                    )
-                    db_connection.commit()
+                        seen_revisions[key] = revision
+
+                        # Print the collected data.
+                        print(f"[DEBUG][{clock_time}] Data aggregation for vehicle: {vehicle_id}")
+
+                        # Save the collected data to the database.
+                        with db_connection.cursor() as cur:
+                            cur.execute(
+                                "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                                (
+                                    vehicle_id,
+                                    values["location_x"],
+                                    values["location_y"],
+                                    values["fuel"],
+                                    values["speed"],
+                                    values["brake_temp"],
+                                    clock_time
+                                )
+                            )
+                            db_connection.commit()
 
     except KeyboardInterrupt:
         print(f"[INFO][{get_current_localized_time()}] Data aggregator received a shutdown signal. Shutting down...", flush=True)
