@@ -78,11 +78,11 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                             "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                             (
                                 vehicle_id,
-                                new_values["location_x"],
-                                new_values["location_y"],
-                                new_values["fuel"],
-                                new_values["speed"],
-                                new_values["brake_temp"],
+                                new_values.get("location_x", None),
+                                new_values.get("location_y", None),
+                                new_values.get("fuel", None),
+                                new_values.get("speed", None),
+                                new_values.get("brake_temp", None),
                                 clock_time
                             )
                         )
