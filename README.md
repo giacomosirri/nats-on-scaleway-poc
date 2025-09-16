@@ -36,7 +36,7 @@ There are some constraints:
 ## Implementation details
 All of the minimum resources presented above are offered by Scaleway as PaaS (managed) solutions.
 
-Scaleway provides a NATS account (server) resource. [https://github.com/nats-io](NATS) (Neural Autonomic Transport System) is a cloud-native, open-source messaging system designed around performance, security and ease of use. It has been part of the [https://landscape.cncf.io/](CNCF landscape) as an incubating project since 2018.
+Scaleway provides a NATS account (server) resource. [NATS](https://github.com/nats-io) (Neural Autonomic Transport System) is a cloud-native, open-source messaging system designed around performance, security and ease of use. It has been part of the [CNCF landscape](https://landscape.cncf.io/) as an incubating project since 2018.
 
 NATS implements the *publish/subscribe* messaging pattern. In this scenario, we will assume that when a vehicle starts up, the ECU runs several NATS clients, one for each physical sensor. Every one of these clients publishes data to the NATS server on a separate subject. 
 
