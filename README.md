@@ -1,7 +1,7 @@
 # Motivation
 The objective of this project is to build a software that solves a simplified but reasonable real-world business scenario using Scaleway cloud services, with particular focus on its NATS and Kubernetes offerings. 
 
-Scaleway is a French cloud provider that is often cited as [https://gartsolutions.com/digital-sovereignty-of-europe-choosing-the-eu-cloud-provider/#Top_European_Cloud_Providers_Supporting_Digital_Sovereignty](one of the major players in Europe's Sovereign Cloud market). Its relevance and market share will most likely grow in the future, as the demand for digital sovereignty in Europe continues to rise.
+Scaleway is a French cloud provider that is often cited as [one of the major players in Europe's Sovereign Cloud market](https://gartsolutions.com/digital-sovereignty-of-europe-choosing-the-eu-cloud-provider/#Top_European_Cloud_Providers_Supporting_Digital_Sovereignty). Its relevance and market share will most likely grow in the future, as the demand for digital sovereignty in Europe continues to rise.
 
 # Scenario
 A car manufacturer wants to equip its upcoming vehicle fleet with sensors for position, speed, fuel and braking liquid temperature. The goal is to have a real-time, comprehensive solution for analysis and visualization of data collected from vehicles. The solution should allow the aggregation of data from multiple vehicles, as well as time-series analysis on single vehicles.
