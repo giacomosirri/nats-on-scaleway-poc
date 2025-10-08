@@ -4,7 +4,9 @@ The goal of this project is to create a software that solves a simplified but re
 Scaleway is a French cloud provider that is often cited as [one of the major players in Europe's Sovereign Cloud market](https://gartsolutions.com/digital-sovereignty-of-europe-choosing-the-eu-cloud-provider/#Top_European_Cloud_Providers_Supporting_Digital_Sovereignty). Its relevance and market share will most likely grow in the future, as the demand for digital sovereignty in Europe continues to rise.
 
 # Scenario
-A car manufacturer wants to equip its new vehicle fleet with sensors for position, speed, fuel and braking liquid temperature. The telemetry information detected by the sensors must be gathered into a centralized data storage solution, to allow for real-time analysis and visualization of vehicle status. The software must allow time-series analysis on specific vehicles, as well as aggregation of data coming from different vehicles.
+A car manufacturer wants to equip its new vehicle fleet with IoT sensors that calculate the position (GPS), speed, state of charge, and torque of vehicles in real-time. The sensors turn on as soon as the vehicle engine starts up, and they turn off when the vehicle gets shut down. Each sensor works independently from the others, which also means that the *sampling rate* (i.e., the number of times a signal is produced per second) can vary significantly. For example, a sensor might send 30 messages per second, while another sends only 5 messages per second.
+
+The telemetry information detected by the sensors must be gathered into a centralized data storage solution, to allow for real-time analysis and visualization of vehicle status. The software must allow time-series analysis on specific vehicles, as well as aggregation of data coming from different vehicles.
 
 There are some constraints:
 
@@ -38,10 +40,12 @@ The minimum resources presented above are all offered by Scaleway as PaaS (manag
 
 Scaleway provides NATS accounts (aka servers). [NATS](https://github.com/nats-io) (Neural Autonomic Transport System) is a cloud-native, open-source messaging system designed around performance, security and ease of use. It has been part of the [CNCF landscape](https://landscape.cncf.io/) as an incubating project since 2018.
 
-NATS implements the *publish-subscribe* pattern, in which the **publisher** sends a message on a communication channel (in NATS called **Subject**) the **subscriber** can listen (or subscribe) to.
+NATS implements the *publish-subscribe* pattern, in which the **publisher** sends a message on a communication channel (in NATS it is called **Subject**) the **subscriber** can listen (or subscribe) to.
 
 For the use case at hand, we can assume that when a vehicle starts up, the ECU executes several NATS clients, one for each physical sensor. These clients publish messages to the NATS server, each on a separate hierarchical subject (e.g. vehicle.145.speed, where 145 is the id of the vehicle).
 
-The NATS server is observed by many subscribers, all carrying out the same task: they collect messages one by one, and they write the payload to a dedicated store inside the NATS server.
+The NATS server is "observed" by a group of subscribers, all carrying out the same task: they read one incoming message at a time, and they write its payload to a dedicated store inside the NATS server. There is no subdivision of the subscribers into separate specialied groups. Instead, every subscriber can read every message, regardless of the topic the message belongs to. This architectural decision automatically ensures a fair and efficient use of the available compute resources, even in case of wildly different sensor sampling rates.
+
+Of course, saving data to the NATS internal storage is not enough to achieve our end goals. There needs to be another service that aggregates data across the sensors at a common point in time, and writes a consistent, time-stamped record to a database. This is exactly what the aggregator does. Once a record is written to the PostgreSQL database, the user can visualize it in the Grafana instance, which is configured with the database as a data source.
 
 ### Technical details
