@@ -6,7 +6,7 @@ Scaleway is a French cloud provider that is often cited as [one of the major pla
 # Scenario
 A car manufacturer wants to equip its new vehicle fleet with IoT sensors that calculate the position (GPS), speed, state of charge, and torque of vehicles in real-time. The sensors turn on as soon as the vehicle engine starts up, and they turn off when the vehicle gets shut down. Each sensor works independently from the others, which also means that the *sampling rate* (i.e., the number of times a signal is produced per second) can vary significantly. For example, a sensor might send 30 messages per second, while another sends only 5 messages per second.
 
-The telemetry information detected by the sensors must be gathered into a centralized data storage solution, to allow for real-time analysis and visualization of vehicle status. The software must allow time-series analysis on specific vehicles, as well as aggregation of data coming from different vehicles.
+The telemetry information detected by the sensors must be gathered into a centralized data storage solution, to allow for real-time analysis and visualization of vehicle status. In particular, the software must allow time-series analysis on specific vehicles, as well as aggregation of data coming from different vehicles.
 
 There are some constraints:
 
@@ -44,8 +44,43 @@ NATS implements the *publish-subscribe* pattern, in which the **publisher** send
 
 For the use case at hand, we can assume that when a vehicle starts up, the ECU executes several NATS clients, one for each physical sensor. These clients publish messages to the NATS server, each on a separate hierarchical subject (e.g. vehicle.145.speed, where 145 is the id of the vehicle).
 
-The NATS server is "observed" by a group of subscribers, all carrying out the same task: they read one incoming message at a time, and they write its payload to a dedicated store inside the NATS server. There is no subdivision of the subscribers into separate specialied groups. Instead, every subscriber can read every message, regardless of the topic the message belongs to. This architectural decision automatically ensures a fair and efficient use of the available compute resources, even in case of wildly different sensor sampling rates.
+The NATS server is "observed" by a group of subscribers, all carrying out the same task: they read one incoming message at a time, and they write its payload to a dedicated store inside the NATS server. 
 
-Of course, saving data to the NATS internal storage is not enough to achieve our end goals. There needs to be another service that aggregates data across the sensors at a common point in time, and writes a consistent, time-stamped record to a database. This is exactly what the aggregator does. Once a record is written to the PostgreSQL database, the user can visualize it in the Grafana instance, which is configured with the database as a data source.
+There is no subdivision of the subscribers into separate specialied groups. Instead, every subscriber can read every message, regardless of the topic the message belongs to. This architectural decision automatically ensures a fair and efficient use of the available compute resources, even in case of wildly different sensor sampling rates.
+
+Of course, saving data to the NATS internal storage is not enough to achieve our end goals. There needs to be another service that aggregates data across the sensors at a common point in time, and writes a consistent, time-stamped record to a database. This is exactly what the aggregator does.
+
+Once a record is written to the PostgreSQL database, the user can visualize it in the Grafana instance, which is configured with the database as a data source.
 
 ### Technical details
+NATS provides several interesting features. Some of them have been used here to achieve the target scenario. In this section I will explain the solution from a technical point of view, with a particular focus on these NATS concepts. 
+
+A very important out-of-the-box feature of NATS are the Queue Groups. If multiple subscribers are assigned to the same Queue Group for a subject, each time a message is published on that subject, only one randomly selected subscriber receives it.
+
+This makes it possible to have multiple subscribers listening in parallel to the same subject, each consuming a message that no other subscriber will ever read. This is crucial for the solution to this scenario, because it means that the number of subscribers can simply scale in or out according to the number of active vehicles.
+
+However, Queue Groups alone don't prevent the risk of losing messages when the cluster where the subscribers run is down. The publish-subscribe pattern doesn't contemplate storing the messages, so when a message is sent, there needs to be at least one subscriber active on that subject, otherwise the message will be lost.
+
+---
+
+Luckily, NATS can be "enhanced" by using [JetStream](https://docs.nats.io/nats-concepts/jetstream), a persistence engine that enables messages to be stored and replayed at a later time. This crucially means that even in case there is no active subscriber when a message is fired, the message will not be lost.
+
+JetStream also offers an *exactly once* quality of service. In other words, JetStream ensures that subscribers receive *all* the messages produced by the publishers without duplicates. All in all, these JetStream features make the system extremely resilient, stable, and scalable.
+
+However, what really makes JetStream a must for this solution is the Key/Value Store, a feature that allows JetStream clients to create *buckets* (i.e. associative arrays, aka dictionaries), where they can store data in the form of key-value entries, thus replicating a functionality commonly found in proper key-value databases such as Redis.
+
+I implemented the persistence of sensor messages using only one bucket, so that the aggregator workload can read data produced by every sensor and vehicle from a single data source (i.e., the bucket itself).
+
+Thanks to a nice feature of the Python NATS library, the bucket is automatically created when the "first" subscriber requests a *pointer* to the bucket. When the other subscribers call the same method later on, JetStream recognizes that a bucket with that name already exists, so it doesn't create a new one and only returns a pointer to the existing one.
+
+This comes very handy, because it implies that the subscribers can all run the same Python coroutine, so there is no need to implement a unique subscriber (or another workload) with the specific purpose of creating the bucket.
+
+Operatively speaking, a subscriber is a member of the queue group, and as such it continuously waits for a message to come. As soon as it receives a message, the subscriber writes that piece of telemetry data to the bucket, mapping the value to a string key that contains information about the sensor and the vehicle the message was produced by. That is basically all that subscribers do, nothing more than that.
+
+---
+
+The aggregator workload reads data from the bucket every *x* seconds, and for each vehicle it creates a record that contains one value for each sensor, then it persists it to the PostgreSQL database. If a sensor doesn't send data, then the aggregator simply puts NULL in place of the value.
+
+You may now rightfully ask what data is the aggregator reading, or, in other words, what data is inside the bucket.
+
+Let's consider this scenario: one of the vehicle's sensors produces messages every 2 seconds, while the aggregator is configured to read from the bucket once every minute. You might expect that the aggregator finds `60/2 = 30` messages for that sensor, in case the entries get deleted from the bucket as soon as they are read, or maybe that it finds all the entries ever stored.
