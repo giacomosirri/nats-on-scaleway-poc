@@ -1,21 +1,24 @@
 # Motivation
-The goal of this project is to create a software that solves a simplified but reasonable real-world business scenario using Scaleway cloud services, with particular focus on its NATS and Kubernetes offerings. 
+The goal of this project is to create a software that solves a simplified but realistic automation problem, using Scaleway as the cloud platform where to host the needed infrastructure resources.
 
 Scaleway is a French cloud provider that is often cited as [one of the major players in Europe's Sovereign Cloud market](https://gartsolutions.com/digital-sovereignty-of-europe-choosing-the-eu-cloud-provider/#Top_European_Cloud_Providers_Supporting_Digital_Sovereignty). Its relevance and market share will most likely grow in the future, as the demand for digital sovereignty in Europe continues to rise.
 
+The scenario considered here and its relative solution were designed to highlight some interesting and unique services of Scaleway, such as the possibility to host a NATS server.
+
+Ultimately, the idea is to build a fully cloud-native solution, showing how a modern approach to software development in the cloud can bring scalable, reliable and efficient systems to life.   
+
 # Scenario
-A car manufacturer wants to equip its new vehicle fleet with IoT sensors that calculate the position (GPS), speed, state of charge, and torque of vehicles in real-time. The sensors turn on as soon as the vehicle engine starts up, and they turn off when the vehicle gets shut down. Each sensor works independently from the others, which also means that the *sampling rate* (i.e., the number of times a signal is produced per second) can vary significantly. For example, a sensor might send 30 messages per second, while another sends only 5 messages per second.
+A car manufacturer wants to equip its new vehicle fleet with IoT sensors that calculate the position (GPS), speed, state of charge, and torque of vehicles in real-time. The sensors turn on as soon as the vehicle engine starts up, and they turn off when the vehicle gets shut down. Each sensor works independently from the others, which means that the *sampling rate* (i.e., the number of times a signal is produced per second) can vary significantly. For example, a sensor can detect 30 new data point per second, while another only 5 per second.
 
 The telemetry information detected by the sensors must be gathered into a centralized data storage solution, to allow for real-time analysis and visualization of vehicle status. In particular, the software must allow time-series analysis on specific vehicles, as well as aggregation of data coming from different vehicles.
 
-There are some constraints:
-
-- sensors have small amounts of CPU and memory, so the software must use resources efficiently;
-- vehicle-to-cloud communication must be secure and resilient;
-- data manipulation, storage and visualization must happen in the cloud, all in one single European sovereign cloud provider;
-- the messaging protocol used to receive data from the sensors must be lightweight, reliable, and fast;
-- the solution must be scalable, having to potentially collect data from thousands of vehicles at the same time;
-- the solution must use as few cloud resources as possible, in order to minimize cloud footprint and costs.
+There are some hard constraints, that the solution must take into consideration:
+- Sensors have small amounts of CPU and memory.
+- Vehicle-to-cloud communication must be secure and resilient.
+- Data manipulation, storage and visualization must happen in the cloud, all in one single European sovereign cloud provider.
+- The protocol used to send data to the cloud must be lightweight, reliable, and fast.
+- The solution must be scalable, having to potentially collect data from thousands of vehicles at the same time.
+- The solution must use as few cloud resources as possible, in order to minimize cloud footprint and costs.
 
 # Solution
 
@@ -91,3 +94,5 @@ As a matter of fact, the aggregator doesn't really need to know all the values t
 In this POC, the aggregator is configured to read at the turn of every new minute, which is probably not acceptable in reality, based on the explanation above. This parameter can also be changed to a lower value, but under a certain threshold the program *as-is* would not work anymore, because the process of reading from the bucket and writing to the database would not be finished in time to start a new step of this loop.
 
 A workaround is to use multithreading in the aggregator core function, so that each thread can autonomously and concurrently take charge of a step.
+
+#### Other resources
