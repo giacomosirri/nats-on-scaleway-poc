@@ -10,11 +10,11 @@ Ultimately, the idea is to build a fully cloud-native solution, showing how a mo
 # Scenario
 A car manufacturer wants to equip its new vehicle fleet with IoT sensors that calculate the position (GPS), speed, state of charge, and torque of vehicles in real-time. The sensors turn on as soon as the vehicle engine starts up, and they turn off when the vehicle gets shut down.
 
-Each sensor works independently from the others, which means that the *sampling rate* (i.e., the number of times a signal is produced per second) can vary significantly betweem two sensors. For example, a sensor can detect 30 new data points per second, while another only 5 per second.
+Each sensor works independently from the others, which means that the *sampling rate* (i.e., the number of times per second a signal is produced) can vary significantly between the sensors. For example, a sensor may detect 30 new data points per second, while another only 5 per second.
 
-The telemetry information detected by the sensors must be gathered into a centralized data storage solution, to allow for real-time analysis and visualization of vehicle status. In particular, the software must allow time-series analysis on specific vehicles, as well as aggregation of data coming from different vehicles.
+The telemetry information detected by the sensors must be gathered into a centralized data storage solution, to allow for real-time visualization and analysis of vehicle status. In particular, the software must allow time-series analysis on specific vehicles, as well as aggregation of data coming from different vehicles.
 
-There are some hard constraints, that the solution must take into consideration:
+There are some hard constraints, that the solution must take into account:
 - Sensors have small amounts of CPU and memory.
 - Vehicle-to-cloud communication must be secure and resilient.
 - Data manipulation, storage and visualization must happen in the cloud, all in a single European sovereign cloud provider.
@@ -25,11 +25,27 @@ There are some hard constraints, that the solution must take into consideration:
 # Solution
 
 ## Infrastructure resources
-From an infrastructural point of view, the goal is to create a solution that needs as few as resources as possible, in order to limit cloud cost and maintenance. NATS client and server aside, we certainly need a computing platform and a database.
+First of all, we need a messaging system to gather and centralize data coming from the sensors.
 
-Cloud-native software is all about containers and Kubernetes, so the computing platform decision is a no-brainer. Scaleway provides managed Kubernetes clusters under the name of Kubernetes Kapsule. When creating a Kubernetes Kapsule cluster, you can choose the node type for your node pool, and set up nodes autoscaling, autohealing and isolation.
+For this task we can use [NATS](https://github.com/nats-io) (Neural Autonomic Transport System), a cloud-native, open-source messaging system designed around performance, security and ease of use. NATS has been part of the [CNCF landscape](https://landscape.cncf.io/) as an incubating project since 2018.
 
-The database 
+NATS implements the *publish-subscribe* pattern, in which the **publisher** sends a message on a communication channel (in NATS it is called **Subject**) the **subscriber** can listen (or subscribe) to. Scaleway provides NATS accounts (i.e., servers) out of the box.
+
+Then we also need a computing platform where to run these subscriber workloads.
+
+Cloud-native software is about building containers and running them on Kubernetes. Scaleway provides managed Kubernetes clusters under the name of Kubernetes Kapsule. When creating a Kubernetes Kapsule cluster, you can choose the node type for your node pool, and set up nodes autoscaling, autohealing and isolation.
+
+Since we want to model a scenario where NATS clients are installed in vehicles, it does not make sense to run these clients in the cloud, so we will simply run them locally. 
+
+As for the database, there are several options available. An interesting one is Serverless SQL, a fully managed database service that automatically scales in storage and compute according to your workloads.
+
+Compared to other more traditional solutions, such as Managed Database for PostgreSQL, for which you pay a fixed amount over time, with Serverless SQL you pay for what you actually use, and you can save more than 80% if you actively use the database only 2 hours per day.
+
+We also need a data visualization service. One of the leading solutions in this field is [Grafana](https://grafana.com/grafana/). Grafana can integrate with several data sources, including PostgreSQL databases. By running Grafana as a container in the Kubernetes cluster, we achieve the goal of hosting the data visualization tool in the cloud without any additional cost.
+
+Finally, we need to securely save credentials for the database and the NATS server. Scaleway provides Secret Manager, a managed and secure storage system for sensitive data such as passwords and API keys.
+
+All in all, these are the main infrastructural resources we need to run this system:
 
 ### Client-side
 - NATS client running locally
@@ -49,12 +65,6 @@ The database
 ![Architecture diagram](architecture-diagram.png)
 
 ## Explanation
- are also provided by Scaleway, which means that the constraint on the cloud provider can be respected.
-
-Scaleway provides NATS accounts (aka servers). [NATS](https://github.com/nats-io) (Neural Autonomic Transport System) is a cloud-native, open-source messaging system designed around performance, security and ease of use. It has been part of the [CNCF landscape](https://landscape.cncf.io/) as an incubating project since 2018.
-
-NATS implements the *publish-subscribe* pattern, in which the **publisher** sends a message on a communication channel (in NATS it is called **Subject**) the **subscriber** can listen (or subscribe) to.
-
 For the use case at hand, we can assume that when a vehicle starts up, the ECU executes several NATS clients, one for each physical sensor. These clients publish messages to the NATS server, each on a separate hierarchical subject (e.g. vehicle.145.speed, where 145 is the id of the vehicle).
 
 *Note: the data produced by the NATS clients is completely random. For the sake of simplicity, the generated data points are floating point values in the [0,100] range.*
@@ -63,7 +73,7 @@ The NATS server is "observed" by a group of subscribers, all carrying out the sa
 
 There is no subdivision of the subscribers into separate specialied groups. Instead, every subscriber can read every message, regardless of the topic the message belongs to. This architectural decision automatically ensures a fair and efficient use of the available compute resources, even in case of wildly different sensor sampling rates.
 
-Of course, saving data to the NATS internal storage is not enough to achieve our end goals. There needs to be another service that aggregates data across the sensors at a common point in time, and writes a consistent, time-stamped record to a database. This is exactly what the aggregator does.
+Of course, saving data to the NATS internal storage is not enough to achieve our end goals. There needs to be another service that aggregates data across the sensors at a common point in time, and writes a consistent, time-stamped record to the database. This is exactly what the aggregator does.
 
 When records are written to the PostgreSQL database, the user can access and visualize them on Grafana by connecting via browser to the Grafana service endpoint.
 
@@ -106,7 +116,6 @@ As a matter of fact, the aggregator doesn't really need to know all the values t
 In this POC, the aggregator is configured to read at the turn of every new minute, which is probably not acceptable in reality, based on the explanation above. This parameter can also be changed to a lower value, but under a certain threshold the program *as-is* would not work anymore, because the process of reading from the bucket and writing to the database would not be finished in time to start a new step of this loop.
 
 A workaround is to use multithreading in the aggregator core function, so that each thread can autonomously and concurrently take charge of a step.
-
 
 # Pros
 - User interface
