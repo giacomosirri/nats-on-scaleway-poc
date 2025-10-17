@@ -1,5 +1,5 @@
 # Motivation
-The goal of this project is to create a software that solves a simplified but realistic automation problem, using Scaleway as the cloud platform where to host the needed infrastructure resources.
+The goal of this project is to use Scaleway resources to develop a distributed program that solves a simplified but realistic automation problem.
 
 Scaleway is a French cloud provider that is often cited as [one of the major players in Europe's Sovereign Cloud market](https://gartsolutions.com/digital-sovereignty-of-europe-choosing-the-eu-cloud-provider/#Top_European_Cloud_Providers_Supporting_Digital_Sovereignty). Its relevance and market share will most likely grow in the future, as the demand for digital sovereignty in Europe continues to rise.
 
@@ -8,38 +8,48 @@ The scenario considered here and its relative solution were designed to highligh
 Ultimately, the idea is to build a fully cloud-native solution, showing how a modern approach to software development in the cloud can bring scalable, reliable and efficient systems to life.   
 
 # Scenario
-A car manufacturer wants to equip its new vehicle fleet with IoT sensors that calculate the position (GPS), speed, state of charge, and torque of vehicles in real-time. The sensors turn on as soon as the vehicle engine starts up, and they turn off when the vehicle gets shut down. Each sensor works independently from the others, which means that the *sampling rate* (i.e., the number of times a signal is produced per second) can vary significantly. For example, a sensor can detect 30 new data point per second, while another only 5 per second.
+A car manufacturer wants to equip its new vehicle fleet with IoT sensors that calculate the position (GPS), speed, state of charge, and torque of vehicles in real-time. The sensors turn on as soon as the vehicle engine starts up, and they turn off when the vehicle gets shut down.
+
+Each sensor works independently from the others, which means that the *sampling rate* (i.e., the number of times a signal is produced per second) can vary significantly betweem two sensors. For example, a sensor can detect 30 new data points per second, while another only 5 per second.
 
 The telemetry information detected by the sensors must be gathered into a centralized data storage solution, to allow for real-time analysis and visualization of vehicle status. In particular, the software must allow time-series analysis on specific vehicles, as well as aggregation of data coming from different vehicles.
 
 There are some hard constraints, that the solution must take into consideration:
 - Sensors have small amounts of CPU and memory.
 - Vehicle-to-cloud communication must be secure and resilient.
-- Data manipulation, storage and visualization must happen in the cloud, all in one single European sovereign cloud provider.
+- Data manipulation, storage and visualization must happen in the cloud, all in a single European sovereign cloud provider.
 - The protocol used to send data to the cloud must be lightweight, reliable, and fast.
 - The solution must be scalable, having to potentially collect data from thousands of vehicles at the same time.
 - The solution must use as few cloud resources as possible, in order to minimize cloud footprint and costs.
 
 # Solution
 
-## Minimum infrastructure resources
+## Infrastructure resources
+From an infrastructural point of view, the goal is to create a solution that needs as few as resources as possible, in order to limit cloud cost and maintenance. NATS client and server aside, we certainly need a computing platform and a database.
+
+Cloud-native software is all about containers and Kubernetes, so the computing platform decision is a no-brainer. Scaleway provides managed Kubernetes clusters under the name of Kubernetes Kapsule. When creating a Kubernetes Kapsule cluster, you can choose the node type for your node pool, and set up nodes autoscaling, autohealing and isolation.
+
+The database 
 
 ### Client-side
-- NATS client
+- NATS client running locally
 
 ### Server-side
-- NATS server
-- Kubernetes cluster
+- Scaleway NATS account
+- Scaleway Kubernetes Kapsule
 
 ### Data visualization
-- PostgreSQL managed instance
-- Grafana instance
+- Scaleway Serverless SQL PostgreSQL managed instance
+- Grafana pod running in Kubernetes Kapsule
+
+### Credentials management
+- Scaleway Secret Manager
 
 ## Architecture diagram
 ![Architecture diagram](architecture-diagram.png)
 
 ## Explanation
-The minimum resources presented above are all offered by Scaleway as PaaS (managed) services. The additional resources needed (e.g. Secret Manager) are also provided by Scaleway, which means that the constraint on the cloud provider can be respected.
+ are also provided by Scaleway, which means that the constraint on the cloud provider can be respected.
 
 Scaleway provides NATS accounts (aka servers). [NATS](https://github.com/nats-io) (Neural Autonomic Transport System) is a cloud-native, open-source messaging system designed around performance, security and ease of use. It has been part of the [CNCF landscape](https://landscape.cncf.io/) as an incubating project since 2018.
 
@@ -47,13 +57,15 @@ NATS implements the *publish-subscribe* pattern, in which the **publisher** send
 
 For the use case at hand, we can assume that when a vehicle starts up, the ECU executes several NATS clients, one for each physical sensor. These clients publish messages to the NATS server, each on a separate hierarchical subject (e.g. vehicle.145.speed, where 145 is the id of the vehicle).
 
+*Note: the data produced by the NATS clients is completely random. For the sake of simplicity, the generated data points are floating point values in the [0,100] range.*
+
 The NATS server is "observed" by a group of subscribers, all carrying out the same task: they read one incoming message at a time, and they write its payload to a dedicated store inside the NATS server. 
 
 There is no subdivision of the subscribers into separate specialied groups. Instead, every subscriber can read every message, regardless of the topic the message belongs to. This architectural decision automatically ensures a fair and efficient use of the available compute resources, even in case of wildly different sensor sampling rates.
 
 Of course, saving data to the NATS internal storage is not enough to achieve our end goals. There needs to be another service that aggregates data across the sensors at a common point in time, and writes a consistent, time-stamped record to a database. This is exactly what the aggregator does.
 
-Once a record is written to the PostgreSQL database, the user can visualize it in the Grafana instance, which is configured with the database as a data source.
+When records are written to the PostgreSQL database, the user can access and visualize them on Grafana by connecting via browser to the Grafana service endpoint.
 
 ### Technical details
 
@@ -95,4 +107,15 @@ In this POC, the aggregator is configured to read at the turn of every new minut
 
 A workaround is to use multithreading in the aggregator core function, so that each thread can autonomously and concurrently take charge of a step.
 
-#### Other resources
+
+# Pros
+- User interface
+- Cost
+- Developer friendly
+- Community: Slack channel is helpful
+
+# Cons
+- Documentation: changes too often, not detailed enough, a bit confusing in general
+- Limited availability: only 3 regions
+- SLA is inferior to the big 3: e.g. for Kubernetes cluster the max SLA is 99.5 
+- Some missing features
