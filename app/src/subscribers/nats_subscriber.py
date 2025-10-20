@@ -5,7 +5,7 @@ from functools import partial
 from nats_credentials_handler import write_nats_credentials_to_file, get_nats_credentials
 from utils import get_or_create_kv_bucket, get_current_localized_time
 
-VALID_KEYS = ["location_x", "location_y", "fuel", "speed", "brake_temp"]
+VALID_KEYS = ["location_x", "location_y", "charge", "speed", "torque"]
 
 async def message_read(kv, msg):
     topic = msg.subject.split('.')[2]

@@ -11,8 +11,8 @@ data:
       vehicle_id INTEGER,
       location_x REAL,
       location_y REAL,
-      brake_temp REAL,
-      fuel REAL,
+      torque REAL,
+      charge REAL,
       speed REAL,
       PRIMARY KEY ("timestamp", vehicle_id)
     );

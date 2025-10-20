@@ -75,14 +75,14 @@ async def main(nats_credentials_file, db_connection: psycopg.Connection):
                     # Save the collected data to the database.
                     with db_connection.cursor() as cur:
                         cur.execute(
-                            "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, fuel, speed, brake_temp, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                            "INSERT INTO vehicle_data.telemetry (vehicle_id, location_x, location_y, charge, speed, torque, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                             (
                                 vehicle_id,
                                 new_values.get("location_x", None),
                                 new_values.get("location_y", None),
-                                new_values.get("fuel", None),
+                                new_values.get("charge", None),
                                 new_values.get("speed", None),
-                                new_values.get("brake_temp", None),
+                                new_values.get("torque", None),
                                 clock_time
                             )
                         )
