@@ -61,7 +61,7 @@ jobs:
           echo "kubeconfig=$(curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}/kubeconfig | jq -r .content)" >> $GITHUB_OUTPUT
         working-directory: terraform
 
-      - name: Save Database connection Secret ID as a GitHub Actions output
+      - name: Save Scaleway Secret Id for database connection as a GitHub Actions output
         id: db
         if: ${{ github.event.inputs.action == 'plan + apply' }}
         run: echo "db_connection_secret_id=$(terraform output -raw db_connection_secret_id)" >> $GITHUB_OUTPUT
@@ -98,13 +98,13 @@ jobs:
       - name: Create image pull secret
         run: kubectl create secret docker-registry ghcr-login --docker-server=ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.PAT_TOKEN }} --docker-email=${{ github.actor }}@users.noreply.github.com
 
-      - name: Retrieve the PostgreSQL credentials from Scaleway Secret Manager
+      - name: Retrieve the database connection string from Scaleway Secret Manager
         id: db_credentials
         run: |
           echo "db_connection_string=$(curl -X GET -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" "https://api.scaleway.com/secret-manager/v1alpha1/regions/fr-par/secrets/${{ needs.provision-infra-resources.outputs.db_connection_secret_id }}/versions/latest/access" | jq -r .data | base64 -d)" >> $GITHUB_OUTPUT
 
-      - name: Create secret for PostgreSQL credentials
-        run: kubectl create secret generic db-credentials --from-literal=DB_CONNECTION_STRING="${{ steps.db_credentials.outputs.db_connection_string }}"
+      - name: Create secret for database
+        run: kubectl create secret generic db-connection --from-literal=DB_CONNECTION_STRING="${{ steps.db_credentials.outputs.db_connection_string }}"
 
       - name: Apply the ConfigMap that contains the database schema
         run: kubectl apply -f k8s/db-schema-configmap.yaml
