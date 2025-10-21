@@ -90,7 +90,7 @@ jobs:
         run: |
           kubectl delete secret scaleway-credentials --ignore-not-found=true
           kubectl delete secret ghcr-login --ignore-not-found=true
-          kubectl delete secret db-credentials --ignore-not-found=true
+          kubectl delete secret db-connection --ignore-not-found=true
 
       - name: Create secret to store Scaleway credentials
         run: kubectl create secret generic scaleway-credentials --from-literal=SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} --from-literal=SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}
