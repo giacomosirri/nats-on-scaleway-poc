@@ -10,15 +10,11 @@ data:
     datasources:
       - name: grafana-postgresql-datasource
         type: postgres
-        url: ${POSTGRES_HOST}:${POSTGRES_PORT}
+        url: ${DB_CONNECTION_STRING}
         access: proxy
-        user: ${POSTGRES_USER}
         isDefault: true
         editable: true
-        secureJsonData:
-          password: ${POSTGRES_PASSWORD}
         jsonData:
-          database: ${POSTGRES_DB}
           postgresVersion: 1500
           sslmode: 'disable'
           timescaledb: false

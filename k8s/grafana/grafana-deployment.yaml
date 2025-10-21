@@ -18,31 +18,11 @@ spec:
           ports:
             - containerPort: 3000
           env:
-            - name: POSTGRES_HOST
+            - name: DB_CONNECTION_STRING
               valueFrom:
                 secretKeyRef:
-                  name: db-credentials
-                  key: DB_HOST
-            - name: POSTGRES_DB
-              valueFrom:
-                secretKeyRef:
-                  name: db-credentials
-                  key: DB_NAME
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: db-credentials
-                  key: DB_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: db-credentials
-                  key: DB_PASSWORD
-            - name: POSTGRES_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: db-credentials
-                  key: DB_PORT
+                  name: db-secret
+                  key: DB_CONNECTION_STRING
           volumeMounts:
             - name: grafana-storage
               mountPath: /var/lib/grafana
