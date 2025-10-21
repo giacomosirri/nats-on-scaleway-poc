@@ -1,4 +1,4 @@
-name: Provision resources on Scaleway and initialize Kubernetes cluster
+name: Provision resources on Scaleway and initialize K8s cluster
 
 on:
   workflow_dispatch:
