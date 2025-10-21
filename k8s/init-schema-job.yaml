@@ -9,34 +9,14 @@ spec:
       - name: psql-init
         image: postgres:15
         env:
-        - name: PGHOST
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: DB_HOST
-        - name: PGPORT
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: DB_PORT
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: DB_PASSWORD
-        - name: PGUSER
-          valueFrom:
-            secretKeyRef:
-              name: db-credentials
-              key: DB_USER
-        - name: CONNECTION_STRING
+        - name: DB_CONNECTION_STRING
           valueFrom:
             secretKeyRef:
               name: db-connection
               key: DB_CONNECTION_STRING
         command: ["sh", "-c"]
         args:
-          - psql "$CONNECTION_STRING" -f /sql/schema.sql
+          - psql "$DB_CONNECTION_STRING" -f /sql/schema.sql
         volumeMounts:
         - name: sql
           mountPath: /sql
