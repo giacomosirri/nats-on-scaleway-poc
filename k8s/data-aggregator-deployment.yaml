@@ -29,7 +29,7 @@ spec:
         - name: DB_CONNECTION_STRING
           valueFrom:
             secretKeyRef:
-              name: db-connection
+              name: db-secret
               key: DB_CONNECTION_STRING
         resources:
           requests:

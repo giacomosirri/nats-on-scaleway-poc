@@ -90,7 +90,7 @@ jobs:
         run: |
           kubectl delete secret scaleway-credentials --ignore-not-found=true
           kubectl delete secret ghcr-login --ignore-not-found=true
-          kubectl delete secret db-connection --ignore-not-found=true
+          kubectl delete secret db-secret --ignore-not-found=true
 
       - name: Create secret to store Scaleway credentials
         run: kubectl create secret generic scaleway-credentials --from-literal=SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} --from-literal=SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}
@@ -104,7 +104,7 @@ jobs:
           echo "db_connection_string=$(curl -X GET -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" "https://api.scaleway.com/secret-manager/v1alpha1/regions/fr-par/secrets/${{ needs.provision-infra-resources.outputs.db_connection_secret_id }}/versions/latest/access" | jq -r .data | base64 -d)" >> $GITHUB_OUTPUT
 
       - name: Create secret for database
-        run: kubectl create secret generic db-connection --from-literal=DB_CONNECTION_STRING="${{ steps.db_credentials.outputs.db_connection_string }}"
+        run: kubectl create secret generic db-secret --from-literal=DB_CONNECTION_STRING="${{ steps.db_credentials.outputs.db_connection_string }}"
 
       - name: Apply the ConfigMap that contains the database schema
         run: kubectl apply -f k8s/db-schema-configmap.yaml
