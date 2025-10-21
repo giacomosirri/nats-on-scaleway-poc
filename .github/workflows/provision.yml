@@ -64,7 +64,8 @@ jobs:
       - name: Save Database connection Secret ID as a GitHub Actions output
         id: db
         if: ${{ github.event.inputs.action == 'plan + apply' }}
-        run: echo "db_connection_secret_id=$(terraform output -raw db_connection_secret_id)" >> $GITHUB_OUTPUT
+        run: | 
+          echo "db_connection_secret_id=$(terraform output -raw db_connection_secret_id)" >> $GITHUB_OUTPUT
 
   initialize-k8s-cluster:
     runs-on: ubuntu-latest
