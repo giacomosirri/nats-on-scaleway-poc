@@ -37,7 +37,7 @@ Cloud-native software is about building containers and running them on Kubernete
 
 Since we want to model a scenario where NATS clients are installed in vehicles, it does not make sense to run these clients in the cloud, so we will simply run them locally with a [script](./app/src/launcher.sh). To ensure that they are small and efficient, clients are written in C using the official [NATS C client](https://github.com/nats-io/nats.c).
 
-As for the database, there are several options available. An interesting one is Serverless SQL, a fully managed database service that automatically scales in storage and compute according to your workloads.
+As for the database, there are several options available. An interesting one is [Serverless SQL Database](https://www.scaleway.com/en/docs/serverless-sql-databases/reference-content/serverless-sql-databases-overview/), a fully managed database service that automatically scales storage and compute resources according to your workloads.
 
 Compared to other more traditional solutions, such as Managed Database for PostgreSQL, for which you pay a fixed amount over time, with Serverless SQL you pay for what you actually use, and you can save more than 80% if you actively use the database only 2 hours per day.
 
@@ -55,7 +55,7 @@ All in all, these are the main infrastructural resources we need to run this sys
 - Scaleway Kubernetes Kapsule
 
 ### Data visualization
-- Scaleway Serverless SQL PostgreSQL managed instance
+- Scaleway Serverless SQL database
 - Grafana pod running in Kubernetes Kapsule
 
 ### Credentials management
