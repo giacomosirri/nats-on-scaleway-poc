@@ -11,10 +11,8 @@ module "kubernetes_module" {
 }
 
 module "database_module" {
-  source                 = "./modules/database"
-  database_server_name   = "postgresql-db-${var.app_name}"
-  database_name          = "sensor-data-db"
-  vpc_private_network_id = module.kubernetes_module.cluster_vpc_private_network_id
+  source        = "./modules/database"
+  database_name = "telemetry-data-db"
 }
 
 module "nats_module" {
@@ -23,14 +21,7 @@ module "nats_module" {
 }
 
 module "secret_module" {
-  source        = "./modules/secret"
-  db_connection = {
-    engine   = "postgres"
-    username = module.database_module.admin_username
-    password = module.database_module.admin_password
-    host     = module.database_module.host
-    dbname   = module.database_module.name
-    port     = module.database_module.port
-  }
+  source                = "./modules/secret"
+  db_connection         = module.database_module.database_connection_string
   nats_credentials_file = module.nats_module.nats_creds
 }
