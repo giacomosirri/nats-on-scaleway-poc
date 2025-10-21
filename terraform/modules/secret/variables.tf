@@ -1,13 +1,6 @@
 variable "db_connection" {
-  type = object({
-    engine   = string
-    username = string
-    password = string
-    host     = string
-    dbname   = string
-    port     = string
-  })
-  description = "Database connection details."
+  type = string
+  description = "Database connection string."
 }
 
 variable "nats_credentials_file" {
