@@ -84,7 +84,7 @@ NATS provides several interesting features. Some of them have been used here to 
 
 A very important out-of-the-box feature of NATS are the Queue Groups. If multiple subscribers are assigned to the same Queue Group for a subject, each time a message is published on that subject, only one randomly selected subscriber receives it.
 
-This makes it possible to have multiple subscribers listening in parallel to the same subject, each consuming a message that no other subscriber will ever read. This is crucial for us, because it means that the number of subscribers can simply scale in or out according to the number of active vehicles.
+This makes it possible to have multiple subscribers listening in parallel to the same subject, each consuming a message that no other subscriber will ever read. This is crucial for us, because it means that the number of subscribers can simply scale in or out according to the number of active vehicles (even though, to make things simpler, the number of subscriber replicas is set to 5 for this POC).
 
 However, Queue Groups alone don't prevent the risk of losing messages when the cluster where the subscribers run is down. The publish-subscribe pattern doesn't contemplate storing the messages, so when a message is sent, there needs to be at least one subscriber active on that subject, otherwise the message will be lost.
 
