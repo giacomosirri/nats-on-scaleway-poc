@@ -4,6 +4,6 @@ output "kubernetes_cluster_id" {
 }
 
 output "db_connection_secret_id" {
-  value = module.secret_module.db_connection_secret_id
+  value = split("/", module.secret_module.db_connection_secret_id)[1]
   description = "The ID of the Secret containing the database connection string."
 }
