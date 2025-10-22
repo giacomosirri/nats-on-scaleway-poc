@@ -44,12 +44,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Derive image tag and label
+        if: ${{ inputs.tag == '' }}
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image.name }}
 
-      - name: Derive image tag from user input
+      - name: Use image tag provided by the user
         if: ${{ inputs.tag != '' }}
         id: user-tag
         run: echo "tag=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image.name }}:${{ inputs.tag }}" >> $GITHUB_OUTPUT
