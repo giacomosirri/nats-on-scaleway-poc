@@ -1,6 +1,12 @@
 variable "db_connection" {
-  type = string
-  description = "Database connection string."
+  type = object({
+    username = string
+    password = string
+    dbname   = string
+    host     = string
+    port     = string
+  })
+  description = "Database connection details."
 }
 
 variable "nats_credentials_file" {

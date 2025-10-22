@@ -22,6 +22,12 @@ module "nats_module" {
 
 module "secret_module" {
   source                = "./modules/secret"
-  db_connection         = module.database_module.database_connection_string
   nats_credentials_file = module.nats_module.nats_creds
+  db_connection         = {
+    username = module.database_module.admin_username
+    password = module.database_module.admin_password
+    dbname   = module.database_module.name
+    host     = module.database_module.host
+    port     = module.database_module.port
+  }
 }
