@@ -4,6 +4,7 @@ metadata:
   name: db-schema
 data:
   schema.sql: |
+    CREATE EXTENSION timescaledb;
     CREATE SCHEMA IF NOT EXISTS vehicle_data;
     CREATE TABLE IF NOT EXISTS vehicle_data.telemetry (
       "timestamp" TIMESTAMPTZ,
