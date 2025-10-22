@@ -41,7 +41,9 @@ As for the database, there are several options available. An interesting one is 
 
 Compared to other more traditional solutions, such as Managed Database for PostgreSQL, for which you pay a fixed amount over time, with Serverless SQL you pay for what you actually use, and you can save more than 80% if you actively use the database only 2 hours per day.
 
-We also need a data visualization service. One of the leading solutions in this field is [Grafana](https://grafana.com/grafana/). Grafana can integrate with several data sources, including PostgreSQL databases. By running Grafana as a container in the Kubernetes cluster, we achieve the goal of hosting the data visualization tool in the cloud without any additional cost.
+We also need a data visualization service. One of the leading solutions in this field is [Grafana](https://grafana.com/grafana/). Grafana can be configured to connect with several data sources, including [PostgreSQL database instances](https://grafana.com/docs/grafana/latest/datasources/postgres/configure/).
+
+We can run Grafana in a pod in the Kubernetes cluster to avoid setting up additional resources. Also, by saving the data source configuration in a ConfigMap mounted to the pod, we can query the database right away, without any manual intervention or setup.
 
 Finally, we need to securely save credentials for the database and the NATS server. Scaleway provides Secret Manager, a managed and secure storage system for sensitive data such as passwords and API keys.
 
@@ -60,6 +62,8 @@ All in all, these are the main infrastructural resources we need to run this sys
 
 ### Credentials management
 - Scaleway Secret Manager
+
+All of these infrastructure resources are managed via Terraform.
 
 ## Architecture diagram
 ![Architecture diagram](architecture-diagram.png)

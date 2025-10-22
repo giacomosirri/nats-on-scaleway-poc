@@ -71,6 +71,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: provision-infra-resources
     if: ${{ github.event.inputs.action == 'plan + apply' }}
+    env:
+      SCALEWAY_SECRET_NAME: scaleway-credentials
+      GHCR_SECRET_NAME: ghcr-login
+      DB_SECRET_NAME: db-credentials
+      REGISTRY: ghcr.io
     steps:
       - uses: actions/checkout@v4
 
@@ -88,23 +93,38 @@ jobs:
       
       - name: Delete previous version of secrets
         run: |
-          kubectl delete secret scaleway-credentials --ignore-not-found=true
-          kubectl delete secret ghcr-login --ignore-not-found=true
-          kubectl delete secret db-secret --ignore-not-found=true
+          kubectl delete secret ${{ env.SCALEWAY_SECRET_NAME }} --ignore-not-found=true
+          kubectl delete secret ${{ env.GHCR_SECRET_NAME }} --ignore-not-found=true
+          kubectl delete secret ${{ env.DB_SECRET_NAME }} --ignore-not-found=true
 
       - name: Create secret to store Scaleway credentials
-        run: kubectl create secret generic scaleway-credentials --from-literal=SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} --from-literal=SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}
+        run: kubectl create secret generic ${{ env.SCALEWAY_SECRET_NAME }} --from-literal=SCW_ACCESS_KEY=${{ secrets.SCW_ACCESS_KEY }} --from-literal=SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}
 
-      - name: Create image pull secret
-        run: kubectl create secret docker-registry ghcr-login --docker-server=ghcr.io --docker-username=${{ github.actor }} --docker-password=${{ secrets.PAT_TOKEN }} --docker-email=${{ github.actor }}@users.noreply.github.com
+      - name: Create secret for registry login
+        run: kubectl create secret docker-registry ${{ env.GHCR_SECRET_NAME }} --docker-server=${{ env.REGISTRY }} --docker-username=${{ github.actor }} --docker-password=${{ secrets.PAT_TOKEN }} --docker-email=${{ github.actor }}@users.noreply.github.com
 
-      - name: Retrieve the database connection string from Scaleway Secret Manager
+      - name: Retrieve the database credentials from Scaleway Secret Manager
         id: db_credentials
         run: |
-          echo "db_connection_string=$(curl -X GET -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" "https://api.scaleway.com/secret-manager/v1alpha1/regions/fr-par/secrets/${{ needs.provision-infra-resources.outputs.db_connection_secret_id }}/versions/latest/access" | jq -r .data | base64 -d)" >> $GITHUB_OUTPUT
+          DB_SECRET_INFO=$(curl -X GET -H "X-Auth-Token: ${{ secrets.SCW_SECRET_KEY }}" "https://api.scaleway.com/secret-manager/v1alpha1/regions/fr-par/secrets/${{ needs.provision-infra-resources.outputs.db_connection_secret_id }}/versions/latest/access" | jq -r .data | base64 -d)
+          echo "::add-mask::$DB_SECRET_INFO"
+          echo "db_secret_info=$DB_SECRET_INFO" >> $GITHUB_OUTPUT
 
       - name: Create secret for database
-        run: kubectl create secret generic db-secret --from-literal=DB_CONNECTION_STRING="${{ steps.db_credentials.outputs.db_connection_string }}"
+        env:
+          DB_CONNECTION_DATA: ${{ steps.db_credentials.outputs.db_secret_info }}
+        run: |
+          DB_NAME=$(echo "$DB_CONNECTION_DATA" | jq -r '.dbname')
+          DB_PORT=$(echo "$DB_CONNECTION_DATA" | jq -r '.port')
+          DB_HOST=$(echo "$DB_CONNECTION_DATA" | jq -r '.host')
+          DB_PASSWORD=$(echo "$DB_CONNECTION_DATA" | jq -r '.password')
+          DB_USERNAME=$(echo "$DB_CONNECTION_DATA" | jq -r '.username')
+          kubectl create secret generic ${{ env.DB_SECRET_NAME }} \
+            --from-literal=DB_HOST="$DB_HOST" \
+            --from-literal=DB_PORT="$DB_PORT" \
+            --from-literal=DB_NAME="$DB_NAME" \
+            --from-literal=DB_USER="$DB_USER" \
+            --from-literal=DB_PASSWORD="$DB_PASSWORD"
 
       - name: Apply the ConfigMap that contains the database schema
         run: kubectl apply -f k8s/db-schema-configmap.yaml
