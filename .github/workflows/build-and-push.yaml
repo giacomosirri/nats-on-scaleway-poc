@@ -44,7 +44,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Derive image tag and label
-        if: ${{ inputs.tag == '' }}
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -65,8 +64,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Update the Deployment definition in place
+        env:
+          tag: ${{ steps.user-tag.outputs.tag || steps.meta.outputs.tags }}
         run: |
-          IMAGE_NAME=`echo "${{ steps.meta.outputs.tags }}" | head -n 1`
+          IMAGE_NAME=`echo "${{ env.tag }}" | head -n 1`
           echo $IMAGE_NAME
           sed -i "s,image: .*,image: ${IMAGE_NAME}," ${{ matrix.image.name }}-deployment.yaml
           cat ${{ matrix.image.name }}-deployment.yaml
