@@ -106,7 +106,7 @@ if __name__ == "__main__":
             user=os.getenv("PGUSER"),
             password=os.getenv("PGPASSWORD"),
             host=os.getenv("PGHOST"),
-            port=os.getenv("PGPORT", "5432")  # Default PostgreSQL port
+            port=os.getenv("PGPORT", "5432")
         )
         with connection:
             print(f"[INFO][{get_current_localized_time()}] Data aggregator connected to the database.")

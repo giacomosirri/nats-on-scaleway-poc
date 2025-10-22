@@ -1,10 +1,9 @@
 variable "db_connection" {
   type = object({
-    engine   = string
     username = string
     password = string
-    host     = string
     dbname   = string
+    host     = string
     port     = string
   })
   description = "Database connection details."

@@ -2,9 +2,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: db-schema
-  namespace: database
 data:
   schema.sql: |
+    CREATE EXTENSION timescaledb;
     CREATE SCHEMA IF NOT EXISTS vehicle_data;
     CREATE TABLE IF NOT EXISTS vehicle_data.telemetry (
       "timestamp" TIMESTAMPTZ,

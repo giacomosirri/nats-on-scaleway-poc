@@ -2,13 +2,12 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: init-schema
-  namespace: database
 spec:
   template:
     spec:
       containers:
       - name: psql-init
-        image: postgres:15
+        image: postgres:16
         env:
         - name: PGHOST
           valueFrom:
