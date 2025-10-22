@@ -1,5 +1,12 @@
 #!/bin/bash
 
+FILE="secrets/scw-secret.txt"
+while IFS= read -r line; do
+    # Do not read empty lines or comments.
+    [[ -z "$line" || "$line" =~ ^# ]] && continue
+    export "$line"
+done < "$FILE"
+
 cleanup() {
     echo "Cleaning up..."
     for pid in "${pids[@]}"; do
