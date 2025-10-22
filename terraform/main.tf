@@ -24,6 +24,7 @@ module "secret_module" {
   source                = "./modules/secret"
   nats_credentials_file = module.nats_module.nats_creds
   db_connection         = {
+    engine   = "postgres"
     username = module.database_module.admin_username
     password = module.database_module.admin_password
     dbname   = module.database_module.name
