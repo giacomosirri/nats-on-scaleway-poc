@@ -101,7 +101,13 @@ if __name__ == "__main__":
     else:
         print(f"[INFO][{get_current_localized_time()}] Data aggregator saved NATS credentials to file.")
         # Connect to the PostgreSQL database.
-        connection = psycopg.connect(conninfo=os.getenv("DB_CONNECTION_STRING"))
+        connection = psycopg.connect(
+            dbname=os.getenv("PGDATABASE"),
+            user=os.getenv("PGUSER"),
+            password=os.getenv("PGPASSWORD"),
+            host=os.getenv("PGHOST"),
+            port=os.getenv("PGPORT", "5432")
+        )
         with connection:
             print(f"[INFO][{get_current_localized_time()}] Data aggregator connected to the database.")
             # Run the main function.
