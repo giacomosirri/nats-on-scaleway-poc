@@ -15,7 +15,7 @@ resource "scaleway_k8s_cluster" "kapsule_multi_az" {
   name                        = "${var.cluster_name}"
   tags                        = ["multi-az"]
   type                        = "kapsule"
-  version                     = "1.32.3"
+  version                     = "1.34.1"
   cni                         = "cilium"
   
   delete_additional_resources = true
