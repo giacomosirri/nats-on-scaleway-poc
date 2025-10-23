@@ -123,7 +123,7 @@ jobs:
             --from-literal=DB_HOST="$DB_HOST" \
             --from-literal=DB_PORT="$DB_PORT" \
             --from-literal=DB_NAME="$DB_NAME" \
-            --from-literal=DB_USER="$DB_USER" \
+            --from-literal=DB_USER="$DB_USERNAME" \
             --from-literal=DB_PASSWORD="$DB_PASSWORD"
 
       - name: Apply the ConfigMap that contains the database schema
