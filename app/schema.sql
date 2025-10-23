@@ -1,0 +1,12 @@
+CREATE EXTENSION timescaledb;
+CREATE SCHEMA IF NOT EXISTS vehicle_data;
+CREATE TABLE IF NOT EXISTS vehicle_data.telemetry (
+    "timestamp" TIMESTAMPTZ,
+    vehicle_id INTEGER,
+    location_x REAL,
+    location_y REAL,
+    torque REAL,
+    charge REAL,
+    speed REAL,
+    PRIMARY KEY ("timestamp", vehicle_id)
+);

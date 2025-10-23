@@ -19,6 +19,6 @@ data:
           password: ${POSTGRES_PASSWORD}
         jsonData:
           database: ${POSTGRES_DB}
-          postgresVersion: 1600
+          postgresVersion: 1500
           sslmode: 'disable'
-          timescaledb: false
+          timescaledb: true

@@ -127,7 +127,7 @@ jobs:
             --from-literal=DB_PASSWORD="$DB_PASSWORD"
 
       - name: Apply the ConfigMap that contains the database schema
-        run: kubectl apply -f k8s/db-schema-configmap.yaml
+        run: kubectl create configmap db-schema --from-file=app/schema.sql -o yaml --dry-run=client | kubectl apply -f -
 
       - name: Apply the Job that initializes the database schema
         run: kubectl apply -f k8s/init-schema-job.yaml
