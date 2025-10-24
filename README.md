@@ -1,7 +1,7 @@
 # Motivation
 The goal of this project is to develop a **distributed application** that meets the needs of a simplified but realistic **vehicle telemetry system** by using Scaleway services.
 
-**Scaleway** is a French cloud provider that is often cited as [one of the major players in Europe's Sovereign Cloud market](https://gartsolutions.com/digital-sovereignty-of-europe-choosing-the-eu-cloud-provider/#Top_European_Cloud_Providers_Supporting_Digital_Sovereignty). Its relevance and market share will most likely grow in the future, as the demand for digital sovereignty in Europe continues to rise.
+**Scaleway** is a French cloud provider often cited as one of the [major players in the European Sovereign Cloud market](https://gartsolutions.com/digital-sovereignty-of-europe-choosing-the-eu-cloud-provider/#Top_European_Cloud_Providers_Supporting_Digital_Sovereignty). Its relevance and market share will most likely grow in the future, as the demand for digital sovereignty in Europe continues to rise.
 
 The scenario considered here and its relative solution were designed to highlight some interesting and unique services of Scaleway, such as the possibility to host a NATS server.
 
