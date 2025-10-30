@@ -5,7 +5,7 @@ The goal of this project is to develop a **distributed application** that meets 
 
 The scenario considered here and its relative solution were designed to highlight some interesting and unique services of Scaleway, such as the possibility to host a NATS server.
 
-Ultimately, the idea is to build a **fully cloud-native solution**, showing how a modern approach to software development in the cloud can bring scalable, reliable and efficient systems to life.   
+Ultimately, the idea is to build a **fully cloud native solution**, showing how a modern approach to software development in the cloud can bring scalable, reliable and efficient systems to life.   
 
 # Scenario
 A car manufacturer wants to equip its new vehicle fleet with **IoT sensors** that calculate the **position (GPS)**, **speed**, **state of charge**, and **torque** of vehicles in real-time. The sensors turn on as soon as the vehicle engine starts up, and they turn off when the vehicle gets shut down.
@@ -15,7 +15,7 @@ Each sensor works independently from the others, which means that the *sampling 
 The telemetry information detected by the sensors must be gathered into a **centralized data storage** solution, to allow for **real-time visualization and analysis** of vehicle status. In particular, the software must allow for time-series analysis on specific vehicles, as well as for aggregation of data coming from different vehicles.
 
 There are some hard constraints that the solution must consider:
-- Sensors have small amounts of CPU and memory.
+- Sensors are IoT devices with very limited amounts of CPU and memory.
 - Vehicle-to-cloud communication must be secure and resilient.
 - Data manipulation, storage and visualization must happen in the cloud, all in a single European sovereign cloud provider.
 - The protocol used to send data to the cloud must be lightweight, reliable, and fast.
@@ -27,27 +27,27 @@ There are some hard constraints that the solution must consider:
 ## Infrastructural resources
 First of all, we need a **messaging system** to gather and centralize data coming from the sensors.
 
-For this task we can use [NATS](https://github.com/nats-io) (Neural Autonomic Transport System), a cloud-native, open-source messaging system designed around performance, security and ease of use. NATS has been part of the [CNCF landscape](https://landscape.cncf.io/) as an incubating project since 2018.
+For this task we can use [NATS](https://github.com/nats-io) (Neural Autonomic Transport System), a cloud native, open source messaging system designed around performance, security and ease of use. NATS has been part of the [CNCF landscape](https://landscape.cncf.io/) as an incubating project since 2018.
 
-NATS implements the [publish-subscribe](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern) pattern, in which the **publisher** sends a message on a communication channel (in NATS it is called **Subject**) the **subscriber** can listen (or subscribe) to. Scaleway provides [NATS accounts](https://www.scaleway.com/en/docs/nats/) (i.e., servers) out of the box.
+NATS implements the [publish-subscribe](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern) pattern, in which the **publisher** sends messages on a communication channel (in NATS it is called **Subject**) the **subscriber** can listen (or subscribe) to. Scaleway provides [NATS accounts](https://www.scaleway.com/en/docs/nats/) (i.e., servers) out of the box.
 
-Then we also need a **computing platform** where to run subscriber workloads.
+Then we also need a **computing platform** where to run the subscriber workloads.
 
-Cloud-native software revolves around building containers and running them on Kubernetes. Scaleway provides **managed Kubernetes** clusters under the name of [Kubernetes Kapsule](https://www.scaleway.com/en/docs/kubernetes/). When creating a Kubernetes Kapsule cluster, you can choose the node type for your node pool, and set up nodes autoscaling, autohealing and isolation.
+Cloud native software revolves around building containers and running them on Kubernetes. Scaleway provides **managed Kubernetes** clusters under the name of [Kubernetes Kapsule](https://www.scaleway.com/en/docs/kubernetes/). When creating a Kubernetes Kapsule cluster, you can choose the node type for your node pool, and set up node autoscaling, autohealing and isolation.
 
 Since we want to model a scenario where NATS clients are installed in vehicles, it does not make sense to run these clients in the cloud, so we will simply run them **locally** with a [script](./app/src/launcher.sh). To ensure that they are as small and resource-efficient as possible, clients are written in C using the official [NATS C client](https://github.com/nats-io/nats.c).
 
-As for the database, there are several options available. An interesting one is [Serverless SQL Database](https://www.scaleway.com/en/docs/serverless-sql-databases/), a fully-serverless database service for PostgreSQL that automatically **scales** storage and compute resources according to your workloads.
+As for the database, there are several options available on Scaleway. An interesting one is [Serverless SQL Database](https://www.scaleway.com/en/docs/serverless-sql-databases/), a fully-serverless database service for PostgreSQL that automatically **scales** storage and compute resources according to your workloads.
 
-Compared to other more traditional solutions, such as [Managed Database for PostgreSQL](https://www.scaleway.com/en/docs/managed-databases-for-postgresql-and-mysql/), for which you pay a fixed amount regardless of usage, with Serverless SQL you only pay for what you actually use, and you can **save more than 80% if you actively use the database for only 2 hours per day**.
+Compared to other more traditional solutions, such as [Managed Database for PostgreSQL](https://www.scaleway.com/en/docs/managed-databases-for-postgresql-and-mysql/), for which you pay a fixed amount regardless of usage, with Serverless SQL you only pay for what you actually use, and you can **save more than 80% compared to Managed Database for PostgreSQL** if you actively use the database (by querying or writing data) for less than 2 hours a day.
 
 We also need a **data visualization** service. One of the leading solutions in this field is [Grafana](https://grafana.com/grafana/), which natively supports [PostgreSQL](https://grafana.com/docs/grafana/latest/datasources/postgres/configure/).
 
 We can run a Grafana container in the same Kubernetes cluster as the NATS workloads, in order to avoid setting up additional infrastructure. Also, by saving the data source configuration in a ConfigMap mounted to the pod, we can query the database right away, without any manual intervention or setup.
 
-*Note: Unfortunately, there is currently a technical issue in Grafana's PostgreSQL plugin that blocks the connection to the database. More specifically, the plugin uses the [lib/pq](https://github.com/lib/pq) driver, which is not maintained anymore. This [issue](https://github.com/grafana/grafana/issues/72417) is well-known and [it is being solved](https://github.com/grafana/grafana/pull/108443) by switching to another driver.*
+*Note: Unfortunately, there is currently a technical issue in Grafana's PostgreSQL plugin that blocks the connection to the database. More specifically, the plugin uses the [lib/pq](https://github.com/lib/pq) driver, which does not support Server Name Indication (SNI). This [issue](https://github.com/grafana/grafana/issues/72417) is well-known and [a fix in progress](https://github.com/grafana/grafana/pull/108443) in the Grafana repository will replace the driver with a more modern one.*
 
-Finally, we need to securely **save credentials** for the database and the NATS server. Scaleway provides [Secret Manager](https://www.scaleway.com/en/docs/secret-manager/), a managed and secure storage system for sensitive data such as passwords and API keys.
+Finally, we need to securely **save credentials** for the database and the NATS server. Scaleway provides [Secret Manager](https://www.scaleway.com/en/docs/secret-manager/), a managed and secure storage service for sensitive data such as passwords and API keys.
 
 All in all, these are the main infrastructural resources we need to run this application:
 
@@ -110,7 +110,7 @@ This comes very handy, because it implies that **the subscribers can all run the
 Operatively speaking, a subscriber is a **queue group member**, and as such it continuously waits for a message to come. As soon as it receives a message, the subscriber **writes that piece of telemetry data to the bucket**, mapping the value to a string key that contains information about the sensor and the vehicle the message was produced by. That is basically all that subscribers do, nothing more than that.
 
 #### Aggregator implementation
-The aggregator workload **reads data from the bucket every *x* seconds**, and for each vehicle it **creates a record** that contains one value for each sensor, then it persists it to the PostgreSQL database. If a sensor doesn't send data, then the aggregator simply puts NULL in place of the value.
+The aggregator workload **reads data from the bucket every *n* seconds**, and for each vehicle it **creates a record** that contains one value for each sensor, then it persists it to the PostgreSQL database. If a sensor doesn't send data, then the aggregator simply puts NULL in place of the value.
 
 Now it is interesting to think about **how the Key/Value Store saves data**. Let's consider this scenario: one of the vehicle's sensors produces messages every 2 seconds, while the aggregator is configured to read from the bucket once every minute. What could happen is that the aggregator finds `60/2 = 30` messages for that sensor, in case the entries get deleted from the bucket as soon as they are read, or maybe it finds all the entries ever stored.
 
